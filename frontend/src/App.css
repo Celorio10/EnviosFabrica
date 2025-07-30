@@ -1,34 +1,230 @@
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+.App {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
-    }
+/* Custom styles for the equipment management system */
+.equipment-form {
+  background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
+.status-badge-pending {
+  @apply bg-yellow-100 text-yellow-800 border-yellow-200;
 }
 
-.App-link {
-    color: #61dafb;
+.status-badge-sent {
+  @apply bg-blue-100 text-blue-800 border-blue-200;
 }
 
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
+.status-badge-manufacturer {
+  @apply bg-orange-100 text-orange-800 border-orange-200;
+}
+
+.status-badge-received {
+  @apply bg-green-100 text-green-800 border-green-200;
+}
+
+/* Professional table styling */
+.equipment-table {
+  @apply shadow-sm border border-slate-200 rounded-lg overflow-hidden;
+}
+
+.equipment-table th {
+  @apply bg-slate-50 font-semibold text-slate-700 py-3 px-4 text-left;
+}
+
+.equipment-table td {
+  @apply py-3 px-4 border-t border-slate-100;
+}
+
+.equipment-table tr:hover {
+  @apply bg-slate-50 transition-colors;
+}
+
+/* Form styling */
+.form-section {
+  @apply bg-white rounded-lg shadow-sm border border-slate-200 p-6 mb-6;
+}
+
+.form-group {
+  @apply mb-4;
+}
+
+.form-label {
+  @apply block text-sm font-medium text-slate-700 mb-1;
+}
+
+.form-input {
+  @apply w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500;
+}
+
+.form-select {
+  @apply w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white;
+}
+
+.form-textarea {
+  @apply w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-vertical;
+}
+
+/* Navigation styling */
+.nav-item {
+  @apply flex items-center px-4 py-2 text-slate-600 hover:bg-slate-100 hover:text-slate-900 rounded-md transition-colors;
+}
+
+.nav-item.active {
+  @apply bg-blue-100 text-blue-900 font-medium;
+}
+
+.nav-item svg {
+  @apply w-5 h-5 mr-3;
+}
+
+/* Button styling */
+.btn-primary {
+  @apply bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium transition-colors;
+}
+
+.btn-secondary {
+  @apply bg-slate-200 hover:bg-slate-300 text-slate-700 px-4 py-2 rounded-md font-medium transition-colors;
+}
+
+.btn-success {
+  @apply bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-md font-medium transition-colors;
+}
+
+.btn-danger {
+  @apply bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md font-medium transition-colors;
+}
+
+/* Header styling */
+.page-header {
+  @apply bg-white shadow-sm border-b border-slate-200 px-6 py-4;
+}
+
+.page-title {
+  @apply text-2xl font-bold text-slate-800;
+}
+
+.page-subtitle {
+  @apply text-slate-600 mt-1;
+}
+
+/* Card styling */
+.equipment-card {
+  @apply bg-white rounded-lg shadow-sm border border-slate-200 p-6 hover:shadow-md transition-shadow;
+}
+
+.equipment-card-header {
+  @apply flex justify-between items-start mb-4;
+}
+
+.equipment-card-title {
+  @apply text-lg font-semibold text-slate-800;
+}
+
+.equipment-card-content {
+  @apply space-y-2 text-sm text-slate-600;
+}
+
+/* Login page styling */
+.login-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1e293b 0%, #3730a3 50%, #1e293b 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.login-card {
+  @apply bg-white rounded-xl shadow-2xl p-8 w-full max-w-md;
+}
+
+.login-title {
+  @apply text-3xl font-bold text-center text-slate-800 mb-2;
+}
+
+.login-subtitle {
+  @apply text-center text-slate-600 mb-6;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .equipment-form {
+    @apply grid-cols-1;
+  }
+  
+  .page-header {
+    @apply px-4 py-3;
+  }
+  
+  .equipment-card {
+    @apply p-4;
+  }
+}
+
+/* Animation classes */
+.fade-in {
+  animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-in {
+  animation: slideIn 0.3s ease-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Focus styles for accessibility */
+.form-input:focus,
+.form-select:focus,
+.form-textarea:focus {
+  outline: none;
+  ring: 2px;
+  ring-color: #3b82f6;
+  ring-offset: 2px;
+}
+
+/* Loading states */
+.loading {
+  @apply opacity-50 pointer-events-none;
+}
+
+.spinner {
+  @apply animate-spin rounded-full h-4 w-4 border-2 border-slate-300 border-t-blue-600;
+}
+
+/* Custom scrollbar */
+.custom-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scroll::-webkit-scrollbar-track {
+  @apply bg-slate-100 rounded;
+}
+
+.custom-scroll::-webkit-scrollbar-thumb {
+  @apply bg-slate-300 rounded hover:bg-slate-400;
 }
