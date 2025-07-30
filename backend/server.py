@@ -187,6 +187,29 @@ async def get_clients(current_user: User = Depends(get_current_user)):
 @api_router.post("/equipos", response_model=Equipment)
 async def create_equipment(equipment: EquipmentCreate, current_user: User = Depends(get_current_user)):
     equipment_dict = equipment.dict()
+    
+    # Convert date strings to datetime objects or None
+    if equipment_dict.get('fecha_fabricacion'):
+        try:
+            equipment_dict['fecha_fabricacion'] = datetime.fromisoformat(equipment_dict['fecha_fabricacion'].replace('Z', '+00:00'))
+        except:
+            equipment_dict['fecha_fabricacion'] = None
+    else:
+        equipment_dict['fecha_fabricacion'] = None
+    
+    if equipment_dict.get('fecha_instalacion_sensor'):
+        try:
+            equipment_dict['fecha_instalacion_sensor'] = datetime.fromisoformat(equipment_dict['fecha_instalacion_sensor'].replace('Z', '+00:00'))
+        except:
+            equipment_dict['fecha_instalacion_sensor'] = None
+    else:
+        equipment_dict['fecha_instalacion_sensor'] = None
+    
+    # Handle empty strings as None for optional fields
+    for field in ['ato', 'observaciones', 'numero_serie_sensor']:
+        if equipment_dict.get(field) == '':
+            equipment_dict[field] = None
+    
     equipment_obj = Equipment(**equipment_dict)
     await db.equipment.insert_one(equipment_obj.dict())
     return equipment_obj
