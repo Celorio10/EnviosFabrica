@@ -103,11 +103,11 @@ class EquipmentCreate(BaseModel):
     ato: Optional[str] = None
     fabricante: str
     numero_serie: str
-    fecha_fabricacion: Optional[datetime] = None
+    fecha_fabricacion: Optional[str] = None  # Changed to string to handle empty dates
     tipo_fallo: str
     observaciones: Optional[str] = None
     numero_serie_sensor: Optional[str] = None
-    fecha_instalacion_sensor: Optional[datetime] = None
+    fecha_instalacion_sensor: Optional[str] = None  # Changed to string to handle empty dates
 
 class Manufacturer(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
