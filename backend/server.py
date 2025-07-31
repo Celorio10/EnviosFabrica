@@ -199,6 +199,14 @@ async def read_users_me(current_user: User = Depends(get_current_user)):
 # Client routes
 @api_router.post("/clientes", response_model=Client)
 async def create_client(client: ClientCreate, current_user: User = Depends(get_current_user)):
+    # Check if CIF already exists
+    existing_client = await db.clients.find_one({"cif": client.cif})
+    if existing_client:
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Ya existe un cliente con el CIF {client.cif}"
+        )
+    
     client_dict = client.dict()
     client_obj = Client(**client_dict)
     await db.clients.insert_one(client_obj.dict())
@@ -222,6 +230,18 @@ async def update_client(client_id: str, client_update: ClientCreate, current_use
     existing_client = await db.clients.find_one({"id": client_id})
     if not existing_client:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    
+    # Check if CIF is being changed and if the new CIF already exists
+    if client_update.cif != existing_client.get("cif"):
+        cif_exists = await db.clients.find_one({
+            "cif": client_update.cif,
+            "id": {"$ne": client_id}  # Exclude the current client
+        })
+        if cif_exists:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Ya existe otro cliente con el CIF {client_update.cif}"
+            )
     
     # Prepare update data - preserve work centers if not provided in update
     update_data = client_update.dict()
