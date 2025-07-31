@@ -113,6 +113,9 @@ function App() {
   });
 
   const [showClientDialog, setShowClientDialog] = useState(false);
+  const [showEditClientDialog, setShowEditClientDialog] = useState(false);
+  const [showClientsListDialog, setShowClientsListDialog] = useState(false);
+  const [editingClient, setEditingClient] = useState(null);
   const [showWorkCenterDialog, setShowWorkCenterDialog] = useState(false);
   const [showNewManufacturer, setShowNewManufacturer] = useState(false);
   const [showNewModel, setShowNewModel] = useState(false);
