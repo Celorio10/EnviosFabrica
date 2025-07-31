@@ -624,7 +624,8 @@ function App() {
   };
 
   const handleWorkCenterSelect = (workCenterId) => {
-    if (!workCenterId || workCenterId.trim() === '') {
+    // Handle the special "no center" case (space character instead of empty string)
+    if (!workCenterId || workCenterId.trim() === '' || workCenterId === ' ') {
       setEquipmentForm({
         ...equipmentForm,
         centro_trabajo_id: '',
