@@ -606,7 +606,7 @@ function App() {
   };
 
   const handleWorkCenterSelect = (workCenterId) => {
-    if (!workCenterId) {
+    if (!workCenterId || workCenterId.trim() === '') {
       setEquipmentForm({
         ...equipmentForm,
         centro_trabajo_id: '',
