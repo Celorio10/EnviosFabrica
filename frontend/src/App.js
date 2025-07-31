@@ -784,128 +784,289 @@ function App() {
             <div className="max-w-4xl mx-auto">
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-3xl font-bold text-slate-800">Entrada de Equipos</h2>
-                <Dialog open={showClientDialog} onOpenChange={setShowClientDialog}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Nuevo Cliente
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                      <DialogTitle>Agregar Nuevo Cliente</DialogTitle>
-                    </DialogHeader>
-                    <form onSubmit={createClient} className="space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <Label>Nombre</Label>
-                          <Input
-                            value={clientForm.nombre}
-                            onChange={(e) => setClientForm({...clientForm, nombre: e.target.value})}
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label>CIF</Label>
-                          <Input
-                            value={clientForm.cif}
-                            onChange={(e) => setClientForm({...clientForm, cif: e.target.value})}
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label>Teléfono</Label>
-                          <Input
-                            value={clientForm.telefono}
-                            onChange={(e) => setClientForm({...clientForm, telefono: e.target.value})}
-                            required
-                          />
-                        </div>
-                        <div>
-                          <Label>Email (opcional)</Label>
-                          <Input
-                            type="email"
-                            value={clientForm.email}
-                            onChange={(e) => setClientForm({...clientForm, email: e.target.value})}
-                          />
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <div className="flex items-center justify-between mb-2">
-                          <Label className="text-lg font-medium">Centros de Trabajo</Label>
-                          <Dialog open={showWorkCenterDialog} onOpenChange={setShowWorkCenterDialog}>
-                            <DialogTrigger asChild>
-                              <Button type="button" variant="outline" size="sm">
-                                <Building2 className="h-4 w-4 mr-2" />
-                                Agregar Centro
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>Agregar Centro de Trabajo</DialogTitle>
-                              </DialogHeader>
-                              <div className="space-y-4">
-                                <div>
-                                  <Label>Nombre del Centro</Label>
-                                  <Input
-                                    value={workCenterForm.nombre}
-                                    onChange={(e) => setWorkCenterForm({...workCenterForm, nombre: e.target.value})}
-                                    placeholder="Ej: Sede Central, Almacén Norte..."
-                                  />
-                                </div>
-                                <div>
-                                  <Label>Dirección (opcional)</Label>
-                                  <Input
-                                    value={workCenterForm.direccion}
-                                    onChange={(e) => setWorkCenterForm({...workCenterForm, direccion: e.target.value})}
-                                    placeholder="Dirección completa"
-                                  />
-                                </div>
-                                <div>
-                                  <Label>Teléfono (opcional)</Label>
-                                  <Input
-                                    value={workCenterForm.telefono}
-                                    onChange={(e) => setWorkCenterForm({...workCenterForm, telefono: e.target.value})}
-                                    placeholder="Teléfono del centro"
-                                  />
-                                </div>
-                                <Button type="button" onClick={addWorkCenter} className="w-full">
-                                  Agregar Centro
-                                </Button>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
+                <div className="flex gap-2">
+                  <Dialog open={showClientDialog} onOpenChange={setShowClientDialog}>
+                    <DialogTrigger asChild>
+                      <Button>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Nuevo Cliente
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent className="max-w-2xl">
+                      <DialogHeader>
+                        <DialogTitle>Agregar Nuevo Cliente</DialogTitle>
+                      </DialogHeader>
+                      <form onSubmit={createClient} className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <Label>Nombre</Label>
+                            <Input
+                              value={clientForm.nombre}
+                              onChange={(e) => setClientForm({...clientForm, nombre: e.target.value})}
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label>CIF</Label>
+                            <Input
+                              value={clientForm.cif}
+                              onChange={(e) => setClientForm({...clientForm, cif: e.target.value})}
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label>Teléfono</Label>
+                            <Input
+                              value={clientForm.telefono}
+                              onChange={(e) => setClientForm({...clientForm, telefono: e.target.value})}
+                              required
+                            />
+                          </div>
+                          <div>
+                            <Label>Email (opcional)</Label>
+                            <Input
+                              type="email"
+                              value={clientForm.email}
+                              onChange={(e) => setClientForm({...clientForm, email: e.target.value})}
+                            />
+                          </div>
                         </div>
                         
-                        {clientForm.centros_trabajo.length > 0 && (
-                          <div className="border rounded-lg p-3 bg-slate-50">
-                            {clientForm.centros_trabajo.map((wc) => (
-                              <div key={wc.id} className="flex items-center justify-between py-2 border-b last:border-b-0">
-                                <div>
-                                  <div className="font-medium">{wc.nombre}</div>
-                                  {wc.direccion && <div className="text-sm text-slate-600">{wc.direccion}</div>}
-                                  {wc.telefono && <div className="text-sm text-slate-600">Tel: {wc.telefono}</div>}
-                                </div>
-                                <Button 
-                                  type="button"
-                                  variant="ghost" 
-                                  size="sm"
-                                  onClick={() => removeWorkCenter(wc.id)}
-                                >
-                                  Eliminar
+                        <div>
+                          <div className="flex items-center justify-between mb-2">
+                            <Label className="text-lg font-medium">Centros de Trabajo</Label>
+                            <Dialog open={showWorkCenterDialog} onOpenChange={setShowWorkCenterDialog}>
+                              <DialogTrigger asChild>
+                                <Button type="button" variant="outline" size="sm">
+                                  <Building2 className="h-4 w-4 mr-2" />
+                                  Agregar Centro
                                 </Button>
-                              </div>
-                            ))}
+                              </DialogTrigger>
+                              <DialogContent>
+                                <DialogHeader>
+                                  <DialogTitle>Agregar Centro de Trabajo</DialogTitle>
+                                </DialogHeader>
+                                <div className="space-y-4">
+                                  <div>
+                                    <Label>Nombre del Centro</Label>
+                                    <Input
+                                      value={workCenterForm.nombre}
+                                      onChange={(e) => setWorkCenterForm({...workCenterForm, nombre: e.target.value})}
+                                      placeholder="Ej: Sede Central, Almacén Norte..."
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label>Dirección (opcional)</Label>
+                                    <Input
+                                      value={workCenterForm.direccion}
+                                      onChange={(e) => setWorkCenterForm({...workCenterForm, direccion: e.target.value})}
+                                      placeholder="Dirección completa"
+                                    />
+                                  </div>
+                                  <div>
+                                    <Label>Teléfono (opcional)</Label>
+                                    <Input
+                                      value={workCenterForm.telefono}
+                                      onChange={(e) => setWorkCenterForm({...workCenterForm, telefono: e.target.value})}
+                                      placeholder="Teléfono del centro"
+                                    />
+                                  </div>
+                                  <Button type="button" onClick={addWorkCenter} className="w-full">
+                                    Agregar Centro
+                                  </Button>
+                                </div>
+                              </DialogContent>
+                            </Dialog>
                           </div>
-                        )}
+                          
+                          {clientForm.centros_trabajo.length > 0 && (
+                            <div className="border rounded-lg p-3 bg-slate-50">
+                              {clientForm.centros_trabajo.map((wc) => (
+                                <div key={wc.id} className="flex items-center justify-between py-2 border-b last:border-b-0">
+                                  <div>
+                                    <div className="font-medium">{wc.nombre}</div>
+                                    {wc.direccion && <div className="text-sm text-slate-600">{wc.direccion}</div>}
+                                    {wc.telefono && <div className="text-sm text-slate-600">Tel: {wc.telefono}</div>}
+                                  </div>
+                                  <Button 
+                                    type="button"
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => removeWorkCenter(wc.id)}
+                                  >
+                                    Eliminar
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        
+                        <Button type="submit">Guardar Cliente</Button>
+                      </form>
+                    </DialogContent>
+                  </Dialog>
+                  
+                  <Dialog open={showClientsListDialog} onOpenChange={setShowClientsListDialog}>
+                    <DialogTrigger asChild>
+                      <Button variant="outline">
+                        <Users className="h-4 w-4 mr-2" />
+                        Editar Cliente
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Seleccionar Cliente a Editar</DialogTitle>
+                      </DialogHeader>
+                      <div className="max-h-96 overflow-y-auto">
+                        {clients.map((client) => (
+                          <div key={client.id} className="flex items-center justify-between p-3 border rounded-lg mb-2">
+                            <div>
+                              <div className="font-medium">{client.nombre}</div>
+                              <div className="text-sm text-slate-600">CIF: {client.cif}</div>
+                              <div className="text-sm text-slate-600">
+                                {client.centros_trabajo?.length || 0} centro(s) de trabajo
+                              </div>
+                            </div>
+                            <Button 
+                              size="sm"
+                              onClick={() => openEditClientDialog(client)}
+                            >
+                              Editar
+                            </Button>
+                          </div>
+                        ))}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
+              </div>
+
+              {/* Edit Client Dialog */}
+              <Dialog open={showEditClientDialog} onOpenChange={setShowEditClientDialog}>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Editar Cliente: {editingClient?.nombre}</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={editClient} className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Nombre</Label>
+                        <Input
+                          value={clientForm.nombre}
+                          onChange={(e) => setClientForm({...clientForm, nombre: e.target.value})}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label>CIF</Label>
+                        <Input
+                          value={clientForm.cif}
+                          onChange={(e) => setClientForm({...clientForm, cif: e.target.value})}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label>Teléfono</Label>
+                        <Input
+                          value={clientForm.telefono}
+                          onChange={(e) => setClientForm({...clientForm, telefono: e.target.value})}
+                          required
+                        />
+                      </div>
+                      <div>
+                        <Label>Email (opcional)</Label>
+                        <Input
+                          type="email"
+                          value={clientForm.email}
+                          onChange={(e) => setClientForm({...clientForm, email: e.target.value})}
+                        />
+                      </div>
+                    </div>
+                    
+                    <div>
+                      <div className="flex items-center justify-between mb-2">
+                        <Label className="text-lg font-medium">Centros de Trabajo</Label>
+                        <Dialog open={showWorkCenterDialog} onOpenChange={setShowWorkCenterDialog}>
+                          <DialogTrigger asChild>
+                            <Button type="button" variant="outline" size="sm">
+                              <Building2 className="h-4 w-4 mr-2" />
+                              Agregar Centro
+                            </Button>
+                          </DialogTrigger>
+                          <DialogContent>
+                            <DialogHeader>
+                              <DialogTitle>Agregar Centro de Trabajo</DialogTitle>
+                            </DialogHeader>
+                            <div className="space-y-4">
+                              <div>
+                                <Label>Nombre del Centro</Label>
+                                <Input
+                                  value={workCenterForm.nombre}
+                                  onChange={(e) => setWorkCenterForm({...workCenterForm, nombre: e.target.value})}
+                                  placeholder="Ej: Sede Central, Almacén Norte..."
+                                />
+                              </div>
+                              <div>
+                                <Label>Dirección (opcional)</Label>
+                                <Input
+                                  value={workCenterForm.direccion}
+                                  onChange={(e) => setWorkCenterForm({...workCenterForm, direccion: e.target.value})}
+                                  placeholder="Dirección completa"
+                                />
+                              </div>
+                              <div>
+                                <Label>Teléfono (opcional)</Label>
+                                <Input
+                                  value={workCenterForm.telefono}
+                                  onChange={(e) => setWorkCenterForm({...workCenterForm, telefono: e.target.value})}
+                                  placeholder="Teléfono del centro"
+                                />
+                              </div>
+                              <Button type="button" onClick={addWorkCenter} className="w-full">
+                                Agregar Centro
+                              </Button>
+                            </div>
+                          </DialogContent>
+                        </Dialog>
                       </div>
                       
-                      <Button type="submit">Guardar Cliente</Button>
-                    </form>
-                  </DialogContent>
-                </Dialog>
-              </div>
+                      {clientForm.centros_trabajo.length > 0 && (
+                        <div className="border rounded-lg p-3 bg-slate-50">
+                          {clientForm.centros_trabajo.map((wc) => (
+                            <div key={wc.id} className="flex items-center justify-between py-2 border-b last:border-b-0">
+                              <div>
+                                <div className="font-medium">{wc.nombre}</div>
+                                {wc.direccion && <div className="text-sm text-slate-600">{wc.direccion}</div>}
+                                {wc.telefono && <div className="text-sm text-slate-600">Tel: {wc.telefono}</div>}
+                              </div>
+                              <Button 
+                                type="button"
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => removeWorkCenter(wc.id)}
+                              >
+                                Eliminar
+                              </Button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <Button type="submit">Actualizar Cliente</Button>
+                      <Button 
+                        type="button" 
+                        variant="outline" 
+                        onClick={() => setShowEditClientDialog(false)}
+                      >
+                        Cancelar
+                      </Button>
+                    </div>
+                  </form>
+                </DialogContent>
+              </Dialog>
 
               <Card>
                 <CardHeader>
