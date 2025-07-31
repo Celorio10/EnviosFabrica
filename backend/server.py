@@ -209,6 +209,36 @@ async def get_clients(current_user: User = Depends(get_current_user)):
     clients = await db.clients.find().to_list(1000)
     return [Client(**client) for client in clients]
 
+@api_router.get("/clientes/{client_id}", response_model=Client)
+async def get_client_by_id(client_id: str, current_user: User = Depends(get_current_user)):
+    client = await db.clients.find_one({"id": client_id})
+    if not client:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    return Client(**client)
+
+@api_router.put("/clientes/{client_id}", response_model=Client)
+async def update_client(client_id: str, client_update: ClientCreate, current_user: User = Depends(get_current_user)):
+    # Find existing client
+    existing_client = await db.clients.find_one({"id": client_id})
+    if not existing_client:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    
+    # Update client data
+    update_data = client_update.dict()
+    update_data["updated_at"] = datetime.utcnow()
+    
+    result = await db.clients.update_one(
+        {"id": client_id}, 
+        {"$set": update_data}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    
+    # Return updated client
+    updated_client = await db.clients.find_one({"id": client_id})
+    return Client(**updated_client)
+
 @api_router.get("/clientes/{client_id}/centros-trabajo", response_model=List[WorkCenter])
 async def get_client_work_centers(client_id: str, current_user: User = Depends(get_current_user)):
     client = await db.clients.find_one({"id": client_id})
@@ -217,6 +247,44 @@ async def get_client_work_centers(client_id: str, current_user: User = Depends(g
     
     client_obj = Client(**client)
     return client_obj.centros_trabajo
+
+@api_router.post("/clientes/{client_id}/centros-trabajo", response_model=Client)
+async def add_work_center_to_client(client_id: str, work_center: WorkCenter, current_user: User = Depends(get_current_user)):
+    # Find existing client
+    existing_client = await db.clients.find_one({"id": client_id})
+    if not existing_client:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    
+    # Add new work center
+    result = await db.clients.update_one(
+        {"id": client_id},
+        {"$push": {"centros_trabajo": work_center.dict()}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    
+    # Return updated client
+    updated_client = await db.clients.find_one({"id": client_id})
+    return Client(**updated_client)
+
+@api_router.delete("/clientes/{client_id}/centros-trabajo/{work_center_id}")
+async def remove_work_center_from_client(client_id: str, work_center_id: str, current_user: User = Depends(get_current_user)):
+    # Find existing client
+    existing_client = await db.clients.find_one({"id": client_id})
+    if not existing_client:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    
+    # Remove work center
+    result = await db.clients.update_one(
+        {"id": client_id},
+        {"$pull": {"centros_trabajo": {"id": work_center_id}}}
+    )
+    
+    if result.modified_count == 0:
+        raise HTTPException(status_code=404, detail="Centro de trabajo no encontrado")
+    
+    return {"message": "Centro de trabajo eliminado correctamente"}
 
 # Equipment routes
 @api_router.post("/equipos", response_model=Equipment)
