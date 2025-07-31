@@ -786,7 +786,7 @@ class EquipmentManagementAPITester:
                 data=client3_update_duplicate
             )
             
-            if not success:
+            if success:  # Success means we got the expected 400 status code
                 print(f"   ✅ Correctly rejected duplicate CIF update")
                 # Check if error message is correct
                 if 'detail' in response and 'Ya existe otro cliente con el CIF B12345678' in response['detail']:
