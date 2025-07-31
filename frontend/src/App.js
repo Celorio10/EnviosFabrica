@@ -251,8 +251,93 @@ function App() {
       setClients([...clients, response.data]);
       setClientForm({ nombre: '', cif: '', telefono: '', email: '', centros_trabajo: [] });
       setShowClientDialog(false);
+      alert('Cliente creado correctamente');
     } catch (error) {
       console.error('Error creating client:', error);
+      alert('Error al crear cliente');
+    }
+  };
+
+  const editClient = async (e) => {
+    e.preventDefault();
+    try {
+      const response = await axios.put(`${API}/clientes/${editingClient.id}`, clientForm, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      // Update clients list
+      setClients(clients.map(c => c.id === editingClient.id ? response.data : c));
+      
+      // Reset form and close dialogs
+      setClientForm({ nombre: '', cif: '', telefono: '', email: '', centros_trabajo: [] });
+      setEditingClient(null);
+      setShowEditClientDialog(false);
+      setShowClientsListDialog(false);
+      
+      alert('Cliente actualizado correctamente');
+    } catch (error) {
+      console.error('Error updating client:', error);
+      alert('Error al actualizar cliente');
+    }
+  };
+
+  const openEditClientDialog = (client) => {
+    setEditingClient(client);
+    setClientForm({
+      nombre: client.nombre,
+      cif: client.cif,
+      telefono: client.telefono,
+      email: client.email || '',
+      centros_trabajo: client.centros_trabajo || []
+    });
+    setShowClientsListDialog(false);
+    setShowEditClientDialog(true);
+  };
+
+  const addWorkCenterToExistingClient = async (clientId, workCenter) => {
+    try {
+      const response = await axios.post(`${API}/clientes/${clientId}/centros-trabajo`, workCenter, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      // Update the editing client data
+      setEditingClient(response.data);
+      setClientForm({
+        ...clientForm,
+        centros_trabajo: response.data.centros_trabajo
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error adding work center:', error);
+      alert('Error al agregar centro de trabajo');
+      return false;
+    }
+  };
+
+  const removeWorkCenterFromExistingClient = async (clientId, workCenterId) => {
+    try {
+      await axios.delete(`${API}/clientes/${clientId}/centros-trabajo/${workCenterId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      // Update the editing client data
+      const updatedClient = {
+        ...editingClient,
+        centros_trabajo: editingClient.centros_trabajo.filter(wc => wc.id !== workCenterId)
+      };
+      
+      setEditingClient(updatedClient);
+      setClientForm({
+        ...clientForm,
+        centros_trabajo: updatedClient.centros_trabajo
+      });
+      
+      return true;
+    } catch (error) {
+      console.error('Error removing work center:', error);
+      alert('Error al eliminar centro de trabajo');
+      return false;
     }
   };
 
