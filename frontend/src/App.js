@@ -185,11 +185,23 @@ function App() {
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      // Filter out work centers with invalid IDs
-      const validWorkCenters = response.data.filter(wc => 
-        wc && wc.id && wc.id.trim() !== '' && wc.nombre && wc.nombre.trim() !== ''
-      );
+      // Ultra-strict filtering to prevent Select.Item errors
+      const validWorkCenters = response.data.filter(wc => {
+        // Check that all required fields exist and are non-empty strings
+        const hasValidId = wc && 
+                           wc.id && 
+                           typeof wc.id === 'string' && 
+                           wc.id.trim().length > 0;
+        
+        const hasValidName = wc && 
+                             wc.nombre && 
+                             typeof wc.nombre === 'string' && 
+                             wc.nombre.trim().length > 0;
+        
+        return hasValidId && hasValidName;
+      });
       
+      console.log(`Loaded ${response.data.length} work centers, filtered to ${validWorkCenters.length} valid ones`);
       setSelectedClientWorkCenters(validWorkCenters);
     } catch (error) {
       console.error('Error loading client work centers:', error);
