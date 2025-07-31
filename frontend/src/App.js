@@ -226,20 +226,36 @@ function App() {
       telefono: workCenterForm.telefono
     };
     
-    setClientForm({
-      ...clientForm,
-      centros_trabajo: [...clientForm.centros_trabajo, newWorkCenter]
-    });
-    
-    setWorkCenterForm({ nombre: '', direccion: '', telefono: '' });
-    setShowWorkCenterDialog(false);
+    // If editing an existing client, call API to add work center
+    if (editingClient) {
+      addWorkCenterToExistingClient(editingClient.id, newWorkCenter).then((success) => {
+        if (success) {
+          setWorkCenterForm({ nombre: '', direccion: '', telefono: '' });
+          setShowWorkCenterDialog(false);
+        }
+      });
+    } else {
+      // Adding to new client form
+      setClientForm({
+        ...clientForm,
+        centros_trabajo: [...clientForm.centros_trabajo, newWorkCenter]
+      });
+      setWorkCenterForm({ nombre: '', direccion: '', telefono: '' });
+      setShowWorkCenterDialog(false);
+    }
   };
 
   const removeWorkCenter = (workCenterId) => {
-    setClientForm({
-      ...clientForm,
-      centros_trabajo: clientForm.centros_trabajo.filter(wc => wc.id !== workCenterId)
-    });
+    // If editing an existing client, call API to remove work center
+    if (editingClient) {
+      removeWorkCenterFromExistingClient(editingClient.id, workCenterId);
+    } else {
+      // Removing from new client form
+      setClientForm({
+        ...clientForm,
+        centros_trabajo: clientForm.centros_trabajo.filter(wc => wc.id !== workCenterId)
+      });
+    }
   };
 
   const createClient = async (e) => {
