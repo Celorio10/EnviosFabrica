@@ -696,15 +696,34 @@ class EquipmentManagementAPITester:
         print("TESTING CIF UNIQUENESS VALIDATION (CRITICAL BUSINESS RULE)")
         print("="*50)
         
-        # Test 1: Create first client with CIF B12345678
+        # Clear database first to ensure clean test
+        print("   🧹 Clearing database for clean test...")
+        success, response = self.run_test(
+            "Clear Database",
+            "POST",
+            "admin/clear-database",
+            200
+        )
+        
+        if success:
+            print(f"   ✅ Database cleared successfully")
+        else:
+            print(f"   ⚠️  Could not clear database, continuing with test...")
+        
+        # Use timestamp to ensure unique CIFs
+        timestamp = datetime.now().strftime('%H%M%S')
+        cif1 = f"B{timestamp}01"  # e.g., B14302301
+        cif2 = f"B{timestamp}02"  # e.g., B14302302
+        
+        # Test 1: Create first client with unique CIF
         client1_data = {
             "nombre": "Cliente Prueba 1",
-            "cif": "B12345678",
+            "cif": cif1,
             "telefono": "111111111"
         }
         
         success, response = self.run_test(
-            "Create First Client (CIF: B12345678)",
+            f"Create First Client (CIF: {cif1})",
             "POST",
             "clientes",
             200,
@@ -715,7 +734,7 @@ class EquipmentManagementAPITester:
         if success and 'id' in response:
             client1_id = response['id']
             self.created_resources['clients'].append(client1_id)
-            print(f"   ✅ First client created successfully with CIF: B12345678")
+            print(f"   ✅ First client created successfully with CIF: {cif1}")
         else:
             print(f"   ❌ Failed to create first client")
             return False
@@ -723,7 +742,7 @@ class EquipmentManagementAPITester:
         # Test 2: Try to create second client with SAME CIF (should fail)
         client2_data = {
             "nombre": "Cliente Prueba 2",
-            "cif": "B12345678",  # Same CIF - should cause error
+            "cif": cif1,  # Same CIF - should cause error
             "telefono": "222222222"
         }
         
@@ -738,7 +757,7 @@ class EquipmentManagementAPITester:
         if success:  # Success means we got the expected 400 status code
             print(f"   ✅ Correctly rejected duplicate CIF creation")
             # Check if error message is correct
-            if 'detail' in response and 'Ya existe un cliente con el CIF B12345678' in response['detail']:
+            if 'detail' in response and f'Ya existe un cliente con el CIF {cif1}' in response['detail']:
                 print(f"   ✅ Correct error message: {response['detail']}")
             else:
                 print(f"   ⚠️  Error message not as expected: {response.get('detail', 'No detail')}")
@@ -749,12 +768,12 @@ class EquipmentManagementAPITester:
         # Test 3: Create third client with different CIF
         client3_data = {
             "nombre": "Cliente Prueba 3",
-            "cif": "B87654321",
+            "cif": cif2,
             "telefono": "333333333"
         }
         
         success, response = self.run_test(
-            "Create Third Client (CIF: B87654321)",
+            f"Create Third Client (CIF: {cif2})",
             "POST",
             "clientes",
             200,
@@ -765,7 +784,7 @@ class EquipmentManagementAPITester:
         if success and 'id' in response:
             client3_id = response['id']
             self.created_resources['clients'].append(client3_id)
-            print(f"   ✅ Third client created successfully with CIF: B87654321")
+            print(f"   ✅ Third client created successfully with CIF: {cif2}")
         else:
             print(f"   ❌ Failed to create third client")
             return False
@@ -774,7 +793,7 @@ class EquipmentManagementAPITester:
         if client3_id:
             client3_update_duplicate = {
                 "nombre": "Cliente Prueba 3",
-                "cif": "B12345678",  # Trying to change to duplicate CIF
+                "cif": cif1,  # Trying to change to duplicate CIF
                 "telefono": "333333333"
             }
             
@@ -789,7 +808,7 @@ class EquipmentManagementAPITester:
             if success:  # Success means we got the expected 400 status code
                 print(f"   ✅ Correctly rejected duplicate CIF update")
                 # Check if error message is correct
-                if 'detail' in response and 'Ya existe otro cliente con el CIF B12345678' in response['detail']:
+                if 'detail' in response and f'Ya existe otro cliente con el CIF {cif1}' in response['detail']:
                     print(f"   ✅ Correct error message: {response['detail']}")
                 else:
                     print(f"   ⚠️  Error message not as expected: {response.get('detail', 'No detail')}")
@@ -801,7 +820,7 @@ class EquipmentManagementAPITester:
         if client3_id:
             client3_update_same = {
                 "nombre": "Cliente Prueba 3 Updated",
-                "cif": "B87654321",  # Keeping same CIF
+                "cif": cif2,  # Keeping same CIF
                 "telefono": "444444444"
             }
             
@@ -821,9 +840,10 @@ class EquipmentManagementAPITester:
         
         # Test 6: Edit third client to new unique CIF (should work)
         if client3_id:
+            new_unique_cif = f"B{timestamp}99"
             client3_update_new = {
                 "nombre": "Cliente Prueba 3 Final",
-                "cif": "B99999999",  # New unique CIF
+                "cif": new_unique_cif,  # New unique CIF
                 "telefono": "555555555"
             }
             
@@ -836,7 +856,7 @@ class EquipmentManagementAPITester:
             )
             
             if success:
-                print(f"   ✅ Successfully updated client with new unique CIF: B99999999")
+                print(f"   ✅ Successfully updated client with new unique CIF: {new_unique_cif}")
             else:
                 print(f"   ❌ Failed to update client with new unique CIF")
                 return False
