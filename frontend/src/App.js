@@ -227,7 +227,7 @@ function App() {
     };
     
     // If editing an existing client, call API to add work center
-    if (editingClient) {
+    if (editingClient && showEditClientDialog) {
       addWorkCenterToExistingClient(editingClient.id, newWorkCenter).then((success) => {
         if (success) {
           setWorkCenterForm({ nombre: '', direccion: '', telefono: '' });
@@ -235,7 +235,7 @@ function App() {
         }
       });
     } else {
-      // Adding to new client form
+      // Adding to new client form (creating new client)
       setClientForm({
         ...clientForm,
         centros_trabajo: [...clientForm.centros_trabajo, newWorkCenter]
@@ -247,10 +247,10 @@ function App() {
 
   const removeWorkCenter = (workCenterId) => {
     // If editing an existing client, call API to remove work center
-    if (editingClient) {
+    if (editingClient && showEditClientDialog) {
       removeWorkCenterFromExistingClient(editingClient.id, workCenterId);
     } else {
-      // Removing from new client form
+      // Removing from new client form (creating new client)
       setClientForm({
         ...clientForm,
         centros_trabajo: clientForm.centros_trabajo.filter(wc => wc.id !== workCenterId)
