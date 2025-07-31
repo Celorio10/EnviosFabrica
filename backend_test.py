@@ -558,6 +558,138 @@ class EquipmentManagementAPITester:
         
         return True
 
+    def test_enagas_client_specific(self):
+        """Test ENAGAS client creation as specified in the requirements"""
+        print("\n" + "="*50)
+        print("TESTING ENAGAS CLIENT CREATION (SPECIFIC TEST)")
+        print("="*50)
+        
+        # Create ENAGAS client with specific details as requested
+        enagas_client = {
+            "nombre": "ENAGAS TRANSPORTE S.A.U.",
+            "cif": "A86484334",
+            "telefono": "987654321",
+            "email": "",
+            "centros_trabajo": [
+                {
+                    "id": f"wc-enagas-{datetime.now().strftime('%H%M%S')}-1",
+                    "nombre": "C.T. Palencia",
+                    "direccion": "",
+                    "telefono": ""
+                },
+                {
+                    "id": f"wc-enagas-{datetime.now().strftime('%H%M%S')}-2",
+                    "nombre": "C.T. Plasencia",
+                    "direccion": "",
+                    "telefono": ""
+                }
+            ]
+        }
+        
+        success, response = self.run_test(
+            "Create ENAGAS Client",
+            "POST",
+            "clientes",
+            200,
+            data=enagas_client
+        )
+        
+        enagas_client_id = None
+        if success and 'id' in response:
+            enagas_client_id = response['id']
+            self.created_resources['clients'].append(enagas_client_id)
+            print(f"   ✅ ENAGAS client created with ID: {enagas_client_id}")
+            
+            # Verify work centers were created correctly
+            if 'centros_trabajo' in response and len(response['centros_trabajo']) == 2:
+                work_centers = response['centros_trabajo']
+                palencia_found = any(wc['nombre'] == 'C.T. Palencia' for wc in work_centers)
+                plasencia_found = any(wc['nombre'] == 'C.T. Plasencia' for wc in work_centers)
+                
+                if palencia_found and plasencia_found:
+                    print(f"   ✅ Both work centers created successfully")
+                else:
+                    print(f"   ❌ Work centers not created correctly")
+                    print(f"       Palencia found: {palencia_found}")
+                    print(f"       Plasencia found: {plasencia_found}")
+            else:
+                print(f"   ❌ Expected 2 work centers, got {len(response.get('centros_trabajo', []))}")
+        
+        # Test getting work centers for ENAGAS client (this is the critical test for Select.Item error)
+        if enagas_client_id:
+            success, work_centers = self.run_test(
+                "Get ENAGAS Work Centers (Critical for Select.Item error)",
+                "GET",
+                f"clientes/{enagas_client_id}/centros-trabajo",
+                200
+            )
+            
+            if success:
+                print(f"   ✅ Work centers endpoint returned {len(work_centers)} centers")
+                
+                # Verify each work center has valid ID and name (this prevents Select.Item error)
+                valid_centers = 0
+                for wc in work_centers:
+                    if wc.get('id') and str(wc['id']).strip() and wc.get('nombre') and str(wc['nombre']).strip():
+                        valid_centers += 1
+                        print(f"       ✅ Valid work center: {wc['nombre']} (ID: {wc['id']})")
+                    else:
+                        print(f"       ❌ Invalid work center: {wc}")
+                
+                if valid_centers == len(work_centers):
+                    print(f"   ✅ All {valid_centers} work centers are valid (no Select.Item error expected)")
+                else:
+                    print(f"   ❌ {len(work_centers) - valid_centers} invalid work centers found")
+            else:
+                print(f"   ❌ Failed to get work centers for ENAGAS client")
+        
+        # Test creating equipment with ENAGAS client (simulating the frontend flow)
+        if enagas_client_id:
+            test_equipment = {
+                "orden_trabajo": "TEST-ENAGAS-SELECT-001",
+                "cliente_id": enagas_client_id,
+                "cliente_nombre": "ENAGAS TRANSPORTE S.A.U.",
+                "centro_trabajo_id": "",  # Will be set after getting work centers
+                "centro_trabajo_nombre": "",
+                "tipo_equipo": "Detector Portátil de Gas",
+                "modelo": "Test Model",
+                "fabricante": "Test Manufacturer",
+                "numero_serie": f"ENAGAS-SN-{datetime.now().strftime('%H%M%S')}",
+                "tipo_fallo": "SENSOR FAILURE",
+                "observaciones": "Test equipment for ENAGAS Select.Item error verification"
+            }
+            
+            # Get work centers again to select one
+            success, work_centers = self.run_test(
+                "Get Work Centers for Equipment Creation",
+                "GET",
+                f"clientes/{enagas_client_id}/centros-trabajo",
+                200
+            )
+            
+            if success and len(work_centers) > 0:
+                # Select the first work center (C.T. Palencia)
+                selected_wc = work_centers[0]
+                test_equipment["centro_trabajo_id"] = selected_wc['id']
+                test_equipment["centro_trabajo_nombre"] = selected_wc['nombre']
+                
+                success, equipment_response = self.run_test(
+                    "Create Equipment with ENAGAS Client and Work Center",
+                    "POST",
+                    "equipos",
+                    200,
+                    data=test_equipment
+                )
+                
+                if success:
+                    print(f"   ✅ Equipment created successfully with ENAGAS client and work center")
+                    if 'id' in equipment_response:
+                        self.created_resources['equipment'].append(equipment_response['id'])
+                else:
+                    print(f"   ❌ Failed to create equipment with ENAGAS client")
+        
+        return enagas_client_id is not None
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting Equipment Management API Tests")
@@ -567,6 +699,9 @@ class EquipmentManagementAPITester:
         if not self.test_authentication():
             print("❌ Authentication failed, stopping all tests")
             return 1
+        
+        # Run the specific ENAGAS test first (as requested)
+        self.test_enagas_client_specific()
             
         self.test_clients()
         self.test_reference_data()
