@@ -413,6 +413,33 @@ async def receive_equipment(request: ReceiveEquipmentRequest, current_user: User
         "received_count": result.modified_count
     }
 
+# Database cleanup endpoint (for development/testing)
+@api_router.post("/admin/clear-database")
+async def clear_database(current_user: User = Depends(get_current_user)):
+    if current_user.username != "admin":
+        raise HTTPException(status_code=403, detail="Solo el administrador puede limpiar la base de datos")
+    
+    try:
+        # Get all collection names
+        collection_names = await db.list_collection_names()
+        
+        # Clear all collections
+        cleared_collections = []
+        for collection_name in collection_names:
+            result = await db[collection_name].delete_many({})
+            cleared_collections.append({
+                "collection": collection_name,
+                "deleted_count": result.deleted_count
+            })
+        
+        return {
+            "message": "Base de datos limpiada exitosamente",
+            "collections_cleared": cleared_collections,
+            "total_collections": len(collection_names)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al limpiar la base de datos: {str(e)}")
+
 # CSV Export endpoint
 @api_router.get("/ordenes-compra/{order_number}/export-csv")
 async def export_purchase_order_csv(order_number: str, current_user: User = Depends(get_current_user)):
