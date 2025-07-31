@@ -790,7 +790,10 @@ function App() {
               <div className="flex justify-between items-center mb-6">
                 <h2 className="text-3xl font-bold text-slate-800">Entrada de Equipos</h2>
                 <div className="flex gap-2">
-                  <Dialog open={showClientDialog} onOpenChange={setShowClientDialog}>
+                  <Dialog open={showClientDialog} onOpenChange={(open) => {
+                    setShowClientDialog(open);
+                    if (!open) resetClientForm();
+                  }}>
                     <DialogTrigger asChild>
                       <Button>
                         <Plus className="h-4 w-4 mr-2" />
