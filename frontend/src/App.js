@@ -288,7 +288,13 @@ function App() {
       alert('Cliente creado correctamente');
     } catch (error) {
       console.error('Error creating client:', error);
-      alert('Error al crear cliente');
+      
+      // Handle specific CIF duplicate error
+      if (error.response && error.response.status === 400) {
+        alert(error.response.data.detail || 'Error: CIF duplicado');
+      } else {
+        alert('Error al crear cliente');
+      }
     }
   };
 
@@ -310,7 +316,13 @@ function App() {
       alert('Cliente actualizado correctamente');
     } catch (error) {
       console.error('Error updating client:', error);
-      alert('Error al actualizar cliente');
+      
+      // Handle specific CIF duplicate error
+      if (error.response && error.response.status === 400) {
+        alert(error.response.data.detail || 'Error: CIF duplicado');
+      } else {
+        alert('Error al actualizar cliente');
+      }
     }
   };
 
