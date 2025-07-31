@@ -446,6 +446,7 @@ class EquipmentManagementAPITester:
         self.test_clients()
         self.test_reference_data()
         self.test_equipment()
+        self.test_workflow_endpoints()
         self.test_purchase_orders()
         self.test_invalid_requests()
         
