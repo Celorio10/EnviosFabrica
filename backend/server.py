@@ -251,7 +251,16 @@ async def get_client_work_centers(client_id: str, current_user: User = Depends(g
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
     
     client_obj = Client(**client)
-    return client_obj.centros_trabajo
+    
+    # Filter out invalid work centers at the backend level
+    valid_work_centers = []
+    for wc in client_obj.centros_trabajo:
+        # Ensure both id and nombre are present and not empty
+        if (wc.id and str(wc.id).strip() and 
+            wc.nombre and str(wc.nombre).strip()):
+            valid_work_centers.append(wc)
+    
+    return valid_work_centers
 
 @api_router.post("/clientes/{client_id}/centros-trabajo", response_model=Client)
 async def add_work_center_to_client(client_id: str, work_center: WorkCenter, current_user: User = Depends(get_current_user)):
