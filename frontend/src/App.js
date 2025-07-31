@@ -23,7 +23,8 @@ import {
   Settings,
   Search,
   Filter,
-  Download
+  Download,
+  Building2
 } from 'lucide-react';
 
 const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
@@ -53,6 +54,7 @@ function App() {
   const [faultTypes, setFaultTypes] = useState([]);
   const [purchaseOrders, setPurchaseOrders] = useState([]);
   const [activePurchaseOrders, setActivePurchaseOrders] = useState([]);
+  const [selectedClientWorkCenters, setSelectedClientWorkCenters] = useState([]);
 
   // Administrative management states
   const [selectedEquipment, setSelectedEquipment] = useState([]);
@@ -82,6 +84,8 @@ function App() {
     orden_trabajo: '',
     cliente_id: '',
     cliente_nombre: '',
+    centro_trabajo_id: '',
+    centro_trabajo_nombre: '',
     tipo_equipo: '',
     modelo: '',
     ato: '',
@@ -98,10 +102,18 @@ function App() {
     nombre: '',
     cif: '',
     telefono: '',
-    email: ''
+    email: '',
+    centros_trabajo: []
+  });
+
+  const [workCenterForm, setWorkCenterForm] = useState({
+    nombre: '',
+    direccion: '',
+    telefono: ''
   });
 
   const [showClientDialog, setShowClientDialog] = useState(false);
+  const [showWorkCenterDialog, setShowWorkCenterDialog] = useState(false);
   const [showNewManufacturer, setShowNewManufacturer] = useState(false);
   const [showNewModel, setShowNewModel] = useState(false);
   const [newManufacturer, setNewManufacturer] = useState('');
@@ -164,6 +176,18 @@ function App() {
     }
   };
 
+  const loadClientWorkCenters = async (clientId) => {
+    try {
+      const response = await axios.get(`${API}/clientes/${clientId}/centros-trabajo`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setSelectedClientWorkCenters(response.data);
+    } catch (error) {
+      console.error('Error loading client work centers:', error);
+      setSelectedClientWorkCenters([]);
+    }
+  };
+
   const login = async (e) => {
     e.preventDefault();
     try {
@@ -186,6 +210,35 @@ function App() {
     localStorage.removeItem('token');
   };
 
+  const addWorkCenter = () => {
+    if (!workCenterForm.nombre.trim()) {
+      alert('Por favor ingrese el nombre del centro de trabajo');
+      return;
+    }
+    
+    const newWorkCenter = {
+      id: `wc-${Date.now()}`,
+      nombre: workCenterForm.nombre,
+      direccion: workCenterForm.direccion,
+      telefono: workCenterForm.telefono
+    };
+    
+    setClientForm({
+      ...clientForm,
+      centros_trabajo: [...clientForm.centros_trabajo, newWorkCenter]
+    });
+    
+    setWorkCenterForm({ nombre: '', direccion: '', telefono: '' });
+    setShowWorkCenterDialog(false);
+  };
+
+  const removeWorkCenter = (workCenterId) => {
+    setClientForm({
+      ...clientForm,
+      centros_trabajo: clientForm.centros_trabajo.filter(wc => wc.id !== workCenterId)
+    });
+  };
+
   const createClient = async (e) => {
     e.preventDefault();
     try {
@@ -193,7 +246,7 @@ function App() {
         headers: { Authorization: `Bearer ${token}` }
       });
       setClients([...clients, response.data]);
-      setClientForm({ nombre: '', cif: '', telefono: '', email: '' });
+      setClientForm({ nombre: '', cif: '', telefono: '', email: '', centros_trabajo: [] });
       setShowClientDialog(false);
     } catch (error) {
       console.error('Error creating client:', error);
@@ -220,6 +273,8 @@ function App() {
         orden_trabajo: '',
         cliente_id: '',
         cliente_nombre: '',
+        centro_trabajo_id: '',
+        centro_trabajo_nombre: '',
         tipo_equipo: '',
         modelo: '',
         ato: '',
@@ -431,7 +486,32 @@ function App() {
       setEquipmentForm({
         ...equipmentForm,
         cliente_id: clientId,
-        cliente_nombre: selectedClient.nombre
+        cliente_nombre: selectedClient.nombre,
+        centro_trabajo_id: '',
+        centro_trabajo_nombre: ''
+      });
+      
+      // Load work centers for this client
+      loadClientWorkCenters(clientId);
+    }
+  };
+
+  const handleWorkCenterSelect = (workCenterId) => {
+    if (!workCenterId) {
+      setEquipmentForm({
+        ...equipmentForm,
+        centro_trabajo_id: '',
+        centro_trabajo_nombre: ''
+      });
+      return;
+    }
+    
+    const selectedWorkCenter = selectedClientWorkCenters.find(wc => wc.id === workCenterId);
+    if (selectedWorkCenter) {
+      setEquipmentForm({
+        ...equipmentForm,
+        centro_trabajo_id: workCenterId,
+        centro_trabajo_nombre: selectedWorkCenter.nombre
       });
     }
   };
@@ -607,43 +687,116 @@ function App() {
                       Nuevo Cliente
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
+                  <DialogContent className="max-w-2xl">
                     <DialogHeader>
                       <DialogTitle>Agregar Nuevo Cliente</DialogTitle>
                     </DialogHeader>
                     <form onSubmit={createClient} className="space-y-4">
-                      <div>
-                        <Label>Nombre</Label>
-                        <Input
-                          value={clientForm.nombre}
-                          onChange={(e) => setClientForm({...clientForm, nombre: e.target.value})}
-                          required
-                        />
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <Label>Nombre</Label>
+                          <Input
+                            value={clientForm.nombre}
+                            onChange={(e) => setClientForm({...clientForm, nombre: e.target.value})}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label>CIF</Label>
+                          <Input
+                            value={clientForm.cif}
+                            onChange={(e) => setClientForm({...clientForm, cif: e.target.value})}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label>Teléfono</Label>
+                          <Input
+                            value={clientForm.telefono}
+                            onChange={(e) => setClientForm({...clientForm, telefono: e.target.value})}
+                            required
+                          />
+                        </div>
+                        <div>
+                          <Label>Email (opcional)</Label>
+                          <Input
+                            type="email"
+                            value={clientForm.email}
+                            onChange={(e) => setClientForm({...clientForm, email: e.target.value})}
+                          />
+                        </div>
                       </div>
+                      
                       <div>
-                        <Label>CIF</Label>
-                        <Input
-                          value={clientForm.cif}
-                          onChange={(e) => setClientForm({...clientForm, cif: e.target.value})}
-                          required
-                        />
+                        <div className="flex items-center justify-between mb-2">
+                          <Label className="text-lg font-medium">Centros de Trabajo</Label>
+                          <Dialog open={showWorkCenterDialog} onOpenChange={setShowWorkCenterDialog}>
+                            <DialogTrigger asChild>
+                              <Button type="button" variant="outline" size="sm">
+                                <Building2 className="h-4 w-4 mr-2" />
+                                Agregar Centro
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent>
+                              <DialogHeader>
+                                <DialogTitle>Agregar Centro de Trabajo</DialogTitle>
+                              </DialogHeader>
+                              <div className="space-y-4">
+                                <div>
+                                  <Label>Nombre del Centro</Label>
+                                  <Input
+                                    value={workCenterForm.nombre}
+                                    onChange={(e) => setWorkCenterForm({...workCenterForm, nombre: e.target.value})}
+                                    placeholder="Ej: Sede Central, Almacén Norte..."
+                                  />
+                                </div>
+                                <div>
+                                  <Label>Dirección (opcional)</Label>
+                                  <Input
+                                    value={workCenterForm.direccion}
+                                    onChange={(e) => setWorkCenterForm({...workCenterForm, direccion: e.target.value})}
+                                    placeholder="Dirección completa"
+                                  />
+                                </div>
+                                <div>
+                                  <Label>Teléfono (opcional)</Label>
+                                  <Input
+                                    value={workCenterForm.telefono}
+                                    onChange={(e) => setWorkCenterForm({...workCenterForm, telefono: e.target.value})}
+                                    placeholder="Teléfono del centro"
+                                  />
+                                </div>
+                                <Button type="button" onClick={addWorkCenter} className="w-full">
+                                  Agregar Centro
+                                </Button>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                        </div>
+                        
+                        {clientForm.centros_trabajo.length > 0 && (
+                          <div className="border rounded-lg p-3 bg-slate-50">
+                            {clientForm.centros_trabajo.map((wc) => (
+                              <div key={wc.id} className="flex items-center justify-between py-2 border-b last:border-b-0">
+                                <div>
+                                  <div className="font-medium">{wc.nombre}</div>
+                                  {wc.direccion && <div className="text-sm text-slate-600">{wc.direccion}</div>}
+                                  {wc.telefono && <div className="text-sm text-slate-600">Tel: {wc.telefono}</div>}
+                                </div>
+                                <Button 
+                                  type="button"
+                                  variant="ghost" 
+                                  size="sm"
+                                  onClick={() => removeWorkCenter(wc.id)}
+                                >
+                                  Eliminar
+                                </Button>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      <div>
-                        <Label>Teléfono</Label>
-                        <Input
-                          value={clientForm.telefono}
-                          onChange={(e) => setClientForm({...clientForm, telefono: e.target.value})}
-                          required
-                        />
-                      </div>
-                      <div>
-                        <Label>Email (opcional)</Label>
-                        <Input
-                          type="email"
-                          value={clientForm.email}
-                          onChange={(e) => setClientForm({...clientForm, email: e.target.value})}
-                        />
-                      </div>
+                      
                       <Button type="submit">Guardar Cliente</Button>
                     </form>
                   </DialogContent>
@@ -680,6 +833,25 @@ function App() {
                         </SelectContent>
                       </Select>
                     </div>
+
+                    {selectedClientWorkCenters.length > 0 && (
+                      <div>
+                        <Label>Centro de Trabajo (opcional)</Label>
+                        <Select onValueChange={handleWorkCenterSelect}>
+                          <SelectTrigger>
+                            <SelectValue placeholder="Seleccionar centro de trabajo" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="">Sin centro específico</SelectItem>
+                            {selectedClientWorkCenters.map((workCenter) => (
+                              <SelectItem key={workCenter.id} value={workCenter.id}>
+                                {workCenter.nombre}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )}
 
                     <div>
                       <Label>Tipo de Equipo</Label>
@@ -883,6 +1055,7 @@ function App() {
                         <TableHead></TableHead>
                         <TableHead>Orden de Trabajo</TableHead>
                         <TableHead>Cliente</TableHead>
+                        <TableHead>Centro de Trabajo</TableHead>
                         <TableHead>Tipo</TableHead>
                         <TableHead>Modelo</TableHead>
                         <TableHead>Número de Serie</TableHead>
@@ -900,6 +1073,7 @@ function App() {
                           </TableCell>
                           <TableCell>{eq.orden_trabajo}</TableCell>
                           <TableCell>{eq.cliente_nombre}</TableCell>
+                          <TableCell>{eq.centro_trabajo_nombre || '-'}</TableCell>
                           <TableCell>{eq.tipo_equipo}</TableCell>
                           <TableCell>{eq.modelo}</TableCell>
                           <TableCell>{eq.numero_serie}</TableCell>
@@ -949,6 +1123,7 @@ function App() {
                         <TableRow>
                           <TableHead>Orden de Trabajo</TableHead>
                           <TableHead>Cliente</TableHead>
+                          <TableHead>Centro de Trabajo</TableHead>
                           <TableHead>Tipo</TableHead>
                           <TableHead>Modelo</TableHead>
                           <TableHead>Fabricante</TableHead>
@@ -961,6 +1136,7 @@ function App() {
                           <TableRow key={eq.id}>
                             <TableCell>{eq.orden_trabajo}</TableCell>
                             <TableCell>{eq.cliente_nombre}</TableCell>
+                            <TableCell>{eq.centro_trabajo_nombre || '-'}</TableCell>
                             <TableCell>{eq.tipo_equipo}</TableCell>
                             <TableCell>{eq.modelo}</TableCell>
                             <TableCell>{eq.fabricante}</TableCell>
@@ -1019,6 +1195,7 @@ function App() {
                                 <TableHead></TableHead>
                                 <TableHead>Orden de Trabajo</TableHead>
                                 <TableHead>Cliente</TableHead>
+                                <TableHead>Centro de Trabajo</TableHead>
                                 <TableHead>Tipo</TableHead>
                                 <TableHead>Número de Serie</TableHead>
                               </TableRow>
@@ -1034,6 +1211,7 @@ function App() {
                                   </TableCell>
                                   <TableCell>{eq.orden_trabajo}</TableCell>
                                   <TableCell>{eq.cliente_nombre}</TableCell>
+                                  <TableCell>{eq.centro_trabajo_nombre || '-'}</TableCell>
                                   <TableCell>{eq.tipo_equipo}</TableCell>
                                   <TableCell>{eq.numero_serie}</TableCell>
                                 </TableRow>
@@ -1126,6 +1304,7 @@ function App() {
                           <TableHead></TableHead>
                           <TableHead>Orden de Trabajo</TableHead>
                           <TableHead>Cliente</TableHead>
+                          <TableHead>Centro de Trabajo</TableHead>
                           <TableHead>Tipo</TableHead>
                           <TableHead>Número de Serie</TableHead>
                           <TableHead>Recepción Fabricante</TableHead>
@@ -1144,6 +1323,7 @@ function App() {
                             </TableCell>
                             <TableCell>{eq.orden_trabajo}</TableCell>
                             <TableCell>{eq.cliente_nombre}</TableCell>
+                            <TableCell>{eq.centro_trabajo_nombre || '-'}</TableCell>
                             <TableCell>{eq.tipo_equipo}</TableCell>
                             <TableCell>{eq.numero_serie}</TableCell>
                             <TableCell>{eq.numero_recepcion_fabricante}</TableCell>
@@ -1186,6 +1366,7 @@ function App() {
                       <TableRow>
                         <TableHead>Orden de Trabajo</TableHead>
                         <TableHead>Cliente</TableHead>
+                        <TableHead>Centro de Trabajo</TableHead>
                         <TableHead>Tipo</TableHead>
                         <TableHead>Modelo</TableHead>
                         <TableHead>Fabricante</TableHead>
@@ -1202,6 +1383,7 @@ function App() {
                         <TableRow key={eq.id}>
                           <TableCell>{eq.orden_trabajo}</TableCell>
                           <TableCell>{eq.cliente_nombre}</TableCell>
+                          <TableCell>{eq.centro_trabajo_nombre || '-'}</TableCell>
                           <TableCell>{eq.tipo_equipo}</TableCell>
                           <TableCell>{eq.modelo}</TableCell>
                           <TableCell>{eq.fabricante}</TableCell>

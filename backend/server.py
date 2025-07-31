@@ -56,12 +56,19 @@ class Token(BaseModel):
 class User(BaseModel):
     username: str
 
+class WorkCenter(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    nombre: str
+    direccion: Optional[str] = None
+    telefono: Optional[str] = None
+
 class Client(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     nombre: str
     cif: str
     telefono: str
     email: Optional[str] = None
+    centros_trabajo: List[WorkCenter] = []
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class ClientCreate(BaseModel):
@@ -69,12 +76,15 @@ class ClientCreate(BaseModel):
     cif: str
     telefono: str
     email: Optional[str] = None
+    centros_trabajo: List[WorkCenter] = []
 
 class Equipment(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     orden_trabajo: str
     cliente_id: str
     cliente_nombre: str
+    centro_trabajo_id: Optional[str] = None
+    centro_trabajo_nombre: Optional[str] = None
     tipo_equipo: str
     modelo: str
     ato: Optional[str] = None
@@ -98,6 +108,8 @@ class EquipmentCreate(BaseModel):
     orden_trabajo: str
     cliente_id: str
     cliente_nombre: str
+    centro_trabajo_id: Optional[str] = None
+    centro_trabajo_nombre: Optional[str] = None
     tipo_equipo: str
     modelo: str
     ato: Optional[str] = None
@@ -197,6 +209,15 @@ async def get_clients(current_user: User = Depends(get_current_user)):
     clients = await db.clients.find().to_list(1000)
     return [Client(**client) for client in clients]
 
+@api_router.get("/clientes/{client_id}/centros-trabajo", response_model=List[WorkCenter])
+async def get_client_work_centers(client_id: str, current_user: User = Depends(get_current_user)):
+    client = await db.clients.find_one({"id": client_id})
+    if not client:
+        raise HTTPException(status_code=404, detail="Cliente no encontrado")
+    
+    client_obj = Client(**client)
+    return client_obj.centros_trabajo
+
 # Equipment routes
 @api_router.post("/equipos", response_model=Equipment)
 async def create_equipment(equipment: EquipmentCreate, current_user: User = Depends(get_current_user)):
@@ -220,7 +241,7 @@ async def create_equipment(equipment: EquipmentCreate, current_user: User = Depe
         equipment_dict['fecha_instalacion_sensor'] = None
     
     # Handle empty strings as None for optional fields
-    for field in ['ato', 'observaciones', 'numero_serie_sensor']:
+    for field in ['ato', 'observaciones', 'numero_serie_sensor', 'centro_trabajo_id', 'centro_trabajo_nombre']:
         if equipment_dict.get(field) == '':
             equipment_dict[field] = None
     
@@ -448,12 +469,13 @@ async def export_purchase_order_csv(order_number: str, current_user: User = Depe
     if not equipment:
         raise HTTPException(status_code=404, detail="No se encontraron equipos para esta orden de compra")
     
-    # Generate CSV content
-    csv_header = "Orden de Trabajo,Cliente,Tipo de Equipo,Modelo,Fabricante,Numero de Serie,Estado,Fecha Creacion\n"
+    # Generate CSV content with work center
+    csv_header = "Orden de Trabajo,Cliente,Centro de Trabajo,Tipo de Equipo,Modelo,Fabricante,Numero de Serie,Estado,Fecha Creacion\n"
     csv_rows = []
     
     for eq in equipment:
-        row = f"{eq['orden_trabajo']},{eq['cliente_nombre']},{eq['tipo_equipo']},{eq['modelo']},{eq['fabricante']},{eq['numero_serie']},{eq['estado']},{eq['created_at'].strftime('%Y-%m-%d')}\n"
+        centro_trabajo = eq.get('centro_trabajo_nombre', '') or ''
+        row = f"{eq['orden_trabajo']},{eq['cliente_nombre']},{centro_trabajo},{eq['tipo_equipo']},{eq['modelo']},{eq['fabricante']},{eq['numero_serie']},{eq['estado']},{eq['created_at'].strftime('%Y-%m-%d')}\n"
         csv_rows.append(row)
     
     csv_content = csv_header + "".join(csv_rows)
