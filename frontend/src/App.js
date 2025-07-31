@@ -951,7 +951,10 @@ function App() {
               </div>
 
               {/* Edit Client Dialog */}
-              <Dialog open={showEditClientDialog} onOpenChange={setShowEditClientDialog}>
+              <Dialog open={showEditClientDialog} onOpenChange={(open) => {
+                setShowEditClientDialog(open);
+                if (!open) resetClientForm();
+              }}>
                 <DialogContent className="max-w-2xl">
                   <DialogHeader>
                     <DialogTitle>Editar Cliente: {editingClient?.nombre}</DialogTitle>
