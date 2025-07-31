@@ -184,7 +184,13 @@ function App() {
       const response = await axios.get(`${API}/clientes/${clientId}/centros-trabajo`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setSelectedClientWorkCenters(response.data);
+      
+      // Filter out work centers with invalid IDs
+      const validWorkCenters = response.data.filter(wc => 
+        wc && wc.id && wc.id.trim() !== '' && wc.nombre && wc.nombre.trim() !== ''
+      );
+      
+      setSelectedClientWorkCenters(validWorkCenters);
     } catch (error) {
       console.error('Error loading client work centers:', error);
       setSelectedClientWorkCenters([]);
