@@ -292,14 +292,65 @@ class EquipmentManagementAPITester:
         
         # Test assigning purchase order (if we have equipment)
         if self.created_resources['equipment']:
-            order_number = f"PO{datetime.now().strftime('%H%M%S')}"
+            order_number = f"PO-2024-{datetime.now().strftime('%H%M%S')}"
+            
+            # Test assign purchase order endpoint
             success, response = self.run_test(
                 "Assign Purchase Order",
                 "POST",
-                f"ordenes-compra/{order_number}/equipos",
+                "ordenes-compra/asignar",
                 200,
-                data=self.created_resources['equipment'][:1]  # Just one equipment
+                data={
+                    "numero_orden": order_number,
+                    "equipment_ids": self.created_resources['equipment'][:1]
+                }
             )
+            
+            if success:
+                # Test get active purchase orders
+                success, active_orders = self.run_test(
+                    "Get Active Purchase Orders",
+                    "GET",
+                    "ordenes-compra/activas",
+                    200
+                )
+                
+                # Test get equipment by purchase order
+                success, po_equipment = self.run_test(
+                    "Get Equipment by Purchase Order",
+                    "GET",
+                    f"ordenes-compra/{order_number}/equipos",
+                    200
+                )
+                
+                # Test get sent equipment by purchase order
+                success, sent_equipment = self.run_test(
+                    "Get Sent Equipment by Purchase Order",
+                    "GET",
+                    f"ordenes-compra/{order_number}/equipos/enviados",
+                    200
+                )
+                
+                # Test manufacturer response
+                success, response = self.run_test(
+                    "Manufacturer Response",
+                    "POST",
+                    f"ordenes-compra/{order_number}/respuesta-fabricante",
+                    200,
+                    data={
+                        "equipment_ids": self.created_resources['equipment'][:1],
+                        "numero_recepcion_fabricante": f"REC-2024-{datetime.now().strftime('%H%M%S')}",
+                        "en_garantia": True
+                    }
+                )
+                
+                # Test CSV export
+                success, csv_response = self.run_test(
+                    "Export Purchase Order CSV",
+                    "GET",
+                    f"ordenes-compra/{order_number}/export-csv",
+                    200
+                )
         
         return success
 
