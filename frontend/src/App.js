@@ -170,9 +170,11 @@ function App() {
 
   const loadActivePurchaseOrders = async () => {
     try {
+      console.log('Loading active purchase orders...');
       const response = await axios.get(`${API}/ordenes-compra/activas`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      console.log('Active purchase orders loaded:', response.data.active_orders);
       setActivePurchaseOrders(response.data.active_orders);
     } catch (error) {
       console.error('Error loading active purchase orders:', error);
