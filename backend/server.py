@@ -223,8 +223,13 @@ async def update_client(client_id: str, client_update: ClientCreate, current_use
     if not existing_client:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
     
-    # Update client data
+    # Prepare update data - preserve work centers if not provided in update
     update_data = client_update.dict()
+    
+    # If centros_trabajo is empty in the update, preserve existing ones
+    if not update_data.get("centros_trabajo"):
+        update_data["centros_trabajo"] = existing_client.get("centros_trabajo", [])
+    
     update_data["updated_at"] = datetime.utcnow()
     
     result = await db.clients.update_one(
