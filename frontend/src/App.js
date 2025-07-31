@@ -261,6 +261,9 @@ function App() {
       });
       setEquipment(equipmentRes.data);
       
+      // Refresh active purchase orders
+      loadActivePurchaseOrders();
+      
       // Reset form
       setSelectedEquipment([]);
       setPurchaseOrderNumber('');
