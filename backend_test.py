@@ -735,7 +735,7 @@ class EquipmentManagementAPITester:
             data=client2_data
         )
         
-        if not success:
+        if success:  # Success means we got the expected 400 status code
             print(f"   ✅ Correctly rejected duplicate CIF creation")
             # Check if error message is correct
             if 'detail' in response and 'Ya existe un cliente con el CIF B12345678' in response['detail']:
