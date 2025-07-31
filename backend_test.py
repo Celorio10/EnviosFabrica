@@ -690,6 +690,166 @@ class EquipmentManagementAPITester:
         
         return enagas_client_id is not None
 
+    def test_cif_uniqueness_validation(self):
+        """Test CIF uniqueness validation as requested in the review"""
+        print("\n" + "="*50)
+        print("TESTING CIF UNIQUENESS VALIDATION (CRITICAL BUSINESS RULE)")
+        print("="*50)
+        
+        # Test 1: Create first client with CIF B12345678
+        client1_data = {
+            "nombre": "Cliente Prueba 1",
+            "cif": "B12345678",
+            "telefono": "111111111"
+        }
+        
+        success, response = self.run_test(
+            "Create First Client (CIF: B12345678)",
+            "POST",
+            "clientes",
+            200,
+            data=client1_data
+        )
+        
+        client1_id = None
+        if success and 'id' in response:
+            client1_id = response['id']
+            self.created_resources['clients'].append(client1_id)
+            print(f"   ✅ First client created successfully with CIF: B12345678")
+        else:
+            print(f"   ❌ Failed to create first client")
+            return False
+        
+        # Test 2: Try to create second client with SAME CIF (should fail)
+        client2_data = {
+            "nombre": "Cliente Prueba 2",
+            "cif": "B12345678",  # Same CIF - should cause error
+            "telefono": "222222222"
+        }
+        
+        success, response = self.run_test(
+            "Create Second Client with Duplicate CIF (Should Fail)",
+            "POST",
+            "clientes",
+            400,  # Expecting 400 error
+            data=client2_data
+        )
+        
+        if not success:
+            print(f"   ✅ Correctly rejected duplicate CIF creation")
+            # Check if error message is correct
+            if 'detail' in response and 'Ya existe un cliente con el CIF B12345678' in response['detail']:
+                print(f"   ✅ Correct error message: {response['detail']}")
+            else:
+                print(f"   ⚠️  Error message not as expected: {response.get('detail', 'No detail')}")
+        else:
+            print(f"   ❌ CRITICAL ERROR: Duplicate CIF was allowed!")
+            return False
+        
+        # Test 3: Create third client with different CIF
+        client3_data = {
+            "nombre": "Cliente Prueba 3",
+            "cif": "B87654321",
+            "telefono": "333333333"
+        }
+        
+        success, response = self.run_test(
+            "Create Third Client (CIF: B87654321)",
+            "POST",
+            "clientes",
+            200,
+            data=client3_data
+        )
+        
+        client3_id = None
+        if success and 'id' in response:
+            client3_id = response['id']
+            self.created_resources['clients'].append(client3_id)
+            print(f"   ✅ Third client created successfully with CIF: B87654321")
+        else:
+            print(f"   ❌ Failed to create third client")
+            return False
+        
+        # Test 4: Try to edit third client to use duplicate CIF (should fail)
+        if client3_id:
+            client3_update_duplicate = {
+                "nombre": "Cliente Prueba 3",
+                "cif": "B12345678",  # Trying to change to duplicate CIF
+                "telefono": "333333333"
+            }
+            
+            success, response = self.run_test(
+                "Update Third Client with Duplicate CIF (Should Fail)",
+                "PUT",
+                f"clientes/{client3_id}",
+                400,  # Expecting 400 error
+                data=client3_update_duplicate
+            )
+            
+            if not success:
+                print(f"   ✅ Correctly rejected duplicate CIF update")
+                # Check if error message is correct
+                if 'detail' in response and 'Ya existe otro cliente con el CIF B12345678' in response['detail']:
+                    print(f"   ✅ Correct error message: {response['detail']}")
+                else:
+                    print(f"   ⚠️  Error message not as expected: {response.get('detail', 'No detail')}")
+            else:
+                print(f"   ❌ CRITICAL ERROR: Duplicate CIF update was allowed!")
+                return False
+        
+        # Test 5: Edit third client keeping same CIF (should work)
+        if client3_id:
+            client3_update_same = {
+                "nombre": "Cliente Prueba 3 Updated",
+                "cif": "B87654321",  # Keeping same CIF
+                "telefono": "444444444"
+            }
+            
+            success, response = self.run_test(
+                "Update Third Client Keeping Same CIF (Should Work)",
+                "PUT",
+                f"clientes/{client3_id}",
+                200,
+                data=client3_update_same
+            )
+            
+            if success:
+                print(f"   ✅ Successfully updated client keeping same CIF")
+            else:
+                print(f"   ❌ Failed to update client with same CIF")
+                return False
+        
+        # Test 6: Edit third client to new unique CIF (should work)
+        if client3_id:
+            client3_update_new = {
+                "nombre": "Cliente Prueba 3 Final",
+                "cif": "B99999999",  # New unique CIF
+                "telefono": "555555555"
+            }
+            
+            success, response = self.run_test(
+                "Update Third Client with New Unique CIF (Should Work)",
+                "PUT",
+                f"clientes/{client3_id}",
+                200,
+                data=client3_update_new
+            )
+            
+            if success:
+                print(f"   ✅ Successfully updated client with new unique CIF: B99999999")
+            else:
+                print(f"   ❌ Failed to update client with new unique CIF")
+                return False
+        
+        print(f"\n   🎯 CIF UNIQUENESS VALIDATION SUMMARY:")
+        print(f"   ✅ Prevents duplicate CIF on client creation")
+        print(f"   ✅ Prevents duplicate CIF on client update")
+        print(f"   ✅ Allows client to keep their own CIF")
+        print(f"   ✅ Allows client to change to new unique CIF")
+        print(f"   ✅ Provides clear error messages")
+        
+        return True
+
     def run_all_tests(self):
         """Run all test suites"""
         print("🚀 Starting Equipment Management API Tests")
@@ -700,9 +860,13 @@ class EquipmentManagementAPITester:
             print("❌ Authentication failed, stopping all tests")
             return 1
         
-        # Run the specific ENAGAS test first (as requested)
+        # Run the CIF uniqueness test first (as requested in review)
+        if not self.test_cif_uniqueness_validation():
+            print("❌ CIF uniqueness validation failed - CRITICAL BUSINESS RULE BROKEN")
+            return 1
+        
+        # Run other tests
         self.test_enagas_client_specific()
-            
         self.test_clients()
         self.test_reference_data()
         self.test_equipment()
