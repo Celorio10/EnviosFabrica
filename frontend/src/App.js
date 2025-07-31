@@ -1136,11 +1136,24 @@ function App() {
                             <SelectValue placeholder="Seleccionar centro de trabajo" />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="">Sin centro específico</SelectItem>
+                            <SelectItem value=" ">Sin centro específico</SelectItem>
                             {selectedClientWorkCenters
-                              .filter(workCenter => workCenter.id && workCenter.id.trim() !== '') // Filter out empty IDs
+                              .filter(workCenter => {
+                                // Ultra-strict filtering for Select rendering
+                                return workCenter && 
+                                       workCenter.id && 
+                                       typeof workCenter.id === 'string' &&
+                                       workCenter.id.trim().length > 0 &&
+                                       workCenter.id !== '' &&
+                                       workCenter.nombre &&
+                                       typeof workCenter.nombre === 'string' &&
+                                       workCenter.nombre.trim().length > 0;
+                              })
                               .map((workCenter) => (
-                                <SelectItem key={workCenter.id} value={workCenter.id}>
+                                <SelectItem 
+                                  key={workCenter.id} 
+                                  value={workCenter.id}
+                                >
                                   {workCenter.nombre}
                                 </SelectItem>
                               ))}
