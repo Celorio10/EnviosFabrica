@@ -310,6 +310,12 @@ function App() {
     setShowEditClientDialog(true);
   };
 
+  const resetClientForm = () => {
+    setClientForm({ nombre: '', cif: '', telefono: '', email: '', centros_trabajo: [] });
+    setWorkCenterForm({ nombre: '', direccion: '', telefono: '' });
+    setEditingClient(null);
+  };
+
   const addWorkCenterToExistingClient = async (clientId, workCenter) => {
     try {
       const response = await axios.post(`${API}/clientes/${clientId}/centros-trabajo`, workCenter, {
