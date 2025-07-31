@@ -440,6 +440,8 @@ function App() {
     }
 
     try {
+      console.log(`Assigning purchase order ${purchaseOrderNumber} to ${selectedEquipment.length} equipment`);
+      
       const response = await axios.post(`${API}/ordenes-compra/asignar`, {
         numero_orden: purchaseOrderNumber,
         equipment_ids: selectedEquipment
@@ -447,6 +449,7 @@ function App() {
         headers: { Authorization: `Bearer ${token}` }
       });
 
+      console.log('Purchase order assigned successfully:', response.data);
       alert(`${response.data.assigned_count} equipos asignados a la orden de compra ${purchaseOrderNumber}`);
       
       // Refresh equipment list
@@ -454,9 +457,13 @@ function App() {
         headers: { Authorization: `Bearer ${token}` }
       });
       setEquipment(equipmentRes.data);
+      console.log('Equipment list refreshed');
       
-      // Refresh active purchase orders
-      loadActivePurchaseOrders();
+      // Refresh active purchase orders with a small delay to ensure backend processing is complete
+      setTimeout(async () => {
+        await loadActivePurchaseOrders();
+        console.log('Active purchase orders refreshed');
+      }, 500);
       
       // Reset form
       setSelectedEquipment([]);
