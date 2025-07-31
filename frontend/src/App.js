@@ -265,7 +265,7 @@ function App() {
         headers: { Authorization: `Bearer ${token}` }
       });
       setClients([...clients, response.data]);
-      setClientForm({ nombre: '', cif: '', telefono: '', email: '', centros_trabajo: [] });
+      resetClientForm();
       setShowClientDialog(false);
       alert('Cliente creado correctamente');
     } catch (error) {
@@ -285,8 +285,7 @@ function App() {
       setClients(clients.map(c => c.id === editingClient.id ? response.data : c));
       
       // Reset form and close dialogs
-      setClientForm({ nombre: '', cif: '', telefono: '', email: '', centros_trabajo: [] });
-      setEditingClient(null);
+      resetClientForm();
       setShowEditClientDialog(false);
       setShowClientsListDialog(false);
       
