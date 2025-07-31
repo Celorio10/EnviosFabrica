@@ -129,6 +129,20 @@ class PurchaseOrder(BaseModel):
     equipments: List[str] = []
     created_at: datetime = Field(default_factory=datetime.utcnow)
 
+class AssignPurchaseOrderRequest(BaseModel):
+    numero_orden: str
+    equipment_ids: List[str]
+
+class ManufacturerResponseRequest(BaseModel):
+    equipment_ids: List[str]
+    numero_recepcion_fabricante: str
+    en_garantia: bool
+    numero_presupuesto: Optional[str] = None
+    presupuesto_aceptado: Optional[bool] = None
+
+class ReceiveEquipmentRequest(BaseModel):
+    equipment_ids: List[str]
+
 # JWT functions
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
@@ -219,6 +233,28 @@ async def get_equipment(current_user: User = Depends(get_current_user)):
     equipment = await db.equipment.find().to_list(1000)
     return [Equipment(**eq) for eq in equipment]
 
+@api_router.get("/equipos/pendientes", response_model=List[Equipment])
+async def get_pending_equipment(current_user: User = Depends(get_current_user)):
+    equipment = await db.equipment.find({"estado": "Pendiente"}).to_list(1000)
+    return [Equipment(**eq) for eq in equipment]
+
+@api_router.get("/equipos/para-recepcion", response_model=List[Equipment])
+async def get_equipment_for_reception(current_user: User = Depends(get_current_user)):
+    # Equipment that has warranty or budget and is ready for reception
+    equipment = await db.equipment.find({
+        "estado": "En Fabricante",
+        "$or": [
+            {"en_garantia": True},
+            {"numero_presupuesto": {"$ne": None}}
+        ]
+    }).to_list(1000)
+    return [Equipment(**eq) for eq in equipment]
+
+@api_router.get("/equipos/completados", response_model=List[Equipment])
+async def get_completed_equipment(current_user: User = Depends(get_current_user)):
+    equipment = await db.equipment.find({"estado": "Recibido"}).to_list(1000)
+    return [Equipment(**eq) for eq in equipment]
+
 @api_router.get("/equipos/{equipment_id}", response_model=Equipment)
 async def get_equipment_by_id(equipment_id: str, current_user: User = Depends(get_current_user)):
     equipment = await db.equipment.find_one({"id": equipment_id})
@@ -288,26 +324,118 @@ async def get_purchase_orders(current_user: User = Depends(get_current_user)):
     orders = await db.purchase_orders.find().to_list(1000)
     return [PurchaseOrder(**order) for order in orders]
 
-@api_router.post("/ordenes-compra/{order_number}/equipos")
-async def assign_purchase_order(order_number: str, equipment_ids: List[str], current_user: User = Depends(get_current_user)):
+@api_router.get("/ordenes-compra/activas")
+async def get_active_purchase_orders(current_user: User = Depends(get_current_user)):
+    # Get purchase orders that have equipment in "Enviado" state
+    equipment_with_po = await db.equipment.find(
+        {"estado": "Enviado", "numero_orden_compra": {"$ne": None}}
+    ).to_list(1000)
+    
+    active_pos = list(set([eq["numero_orden_compra"] for eq in equipment_with_po]))
+    return {"active_orders": active_pos}
+
+@api_router.get("/ordenes-compra/{order_number}/equipos", response_model=List[Equipment])
+async def get_equipment_by_purchase_order(order_number: str, current_user: User = Depends(get_current_user)):
+    equipment = await db.equipment.find({"numero_orden_compra": order_number}).to_list(1000)
+    return [Equipment(**eq) for eq in equipment]
+
+@api_router.get("/ordenes-compra/{order_number}/equipos/enviados", response_model=List[Equipment])
+async def get_sent_equipment_by_purchase_order(order_number: str, current_user: User = Depends(get_current_user)):
+    # Only equipment that is still in "Enviado" state (not processed by manufacturer yet)
+    equipment = await db.equipment.find({
+        "numero_orden_compra": order_number, 
+        "estado": "Enviado"
+    }).to_list(1000)
+    return [Equipment(**eq) for eq in equipment]
+
+@api_router.post("/ordenes-compra/asignar")
+async def assign_purchase_order(request: AssignPurchaseOrderRequest, current_user: User = Depends(get_current_user)):
     # Create or update purchase order
-    existing_order = await db.purchase_orders.find_one({"numero_orden": order_number})
+    existing_order = await db.purchase_orders.find_one({"numero_orden": request.numero_orden})
     if existing_order:
         await db.purchase_orders.update_one(
-            {"numero_orden": order_number},
-            {"$addToSet": {"equipments": {"$each": equipment_ids}}}
+            {"numero_orden": request.numero_orden},
+            {"$addToSet": {"equipments": {"$each": request.equipment_ids}}}
         )
     else:
-        order = PurchaseOrder(numero_orden=order_number, equipments=equipment_ids)
+        order = PurchaseOrder(numero_orden=request.numero_orden, equipments=request.equipment_ids)
         await db.purchase_orders.insert_one(order.dict())
     
     # Update equipment status
     await db.equipment.update_many(
-        {"id": {"$in": equipment_ids}},
-        {"$set": {"numero_orden_compra": order_number, "estado": "Enviado", "updated_at": datetime.utcnow()}}
+        {"id": {"$in": request.equipment_ids}},
+        {"$set": {
+            "numero_orden_compra": request.numero_orden, 
+            "estado": "Enviado", 
+            "updated_at": datetime.utcnow()
+        }}
     )
     
-    return {"message": "Orden de compra asignada correctamente"}
+    return {"message": "Orden de compra asignada correctamente", "assigned_count": len(request.equipment_ids)}
+
+@api_router.post("/ordenes-compra/{order_number}/respuesta-fabricante")
+async def manufacturer_response(order_number: str, request: ManufacturerResponseRequest, current_user: User = Depends(get_current_user)):
+    # Update selected equipment with manufacturer response
+    updates = {
+        "numero_recepcion_fabricante": request.numero_recepcion_fabricante,
+        "en_garantia": request.en_garantia,
+        "estado": "En Fabricante",
+        "updated_at": datetime.utcnow()
+    }
+    
+    if not request.en_garantia:
+        updates["numero_presupuesto"] = request.numero_presupuesto
+        updates["presupuesto_aceptado"] = request.presupuesto_aceptado
+    
+    result = await db.equipment.update_many(
+        {"id": {"$in": request.equipment_ids}, "numero_orden_compra": order_number},
+        {"$set": updates}
+    )
+    
+    return {
+        "message": "Respuesta de fabricante registrada correctamente", 
+        "updated_count": result.modified_count
+    }
+
+@api_router.post("/equipos/recibir")
+async def receive_equipment(request: ReceiveEquipmentRequest, current_user: User = Depends(get_current_user)):
+    # Mark equipment as received
+    result = await db.equipment.update_many(
+        {"id": {"$in": request.equipment_ids}},
+        {"$set": {
+            "estado": "Recibido",
+            "updated_at": datetime.utcnow()
+        }}
+    )
+    
+    return {
+        "message": "Equipos marcados como recibidos correctamente",
+        "received_count": result.modified_count
+    }
+
+# CSV Export endpoint
+@api_router.get("/ordenes-compra/{order_number}/export-csv")
+async def export_purchase_order_csv(order_number: str, current_user: User = Depends(get_current_user)):
+    equipment = await db.equipment.find({"numero_orden_compra": order_number}).to_list(1000)
+    
+    if not equipment:
+        raise HTTPException(status_code=404, detail="No se encontraron equipos para esta orden de compra")
+    
+    # Generate CSV content
+    csv_header = "Orden de Trabajo,Cliente,Tipo de Equipo,Modelo,Fabricante,Numero de Serie,Estado,Fecha Creacion\n"
+    csv_rows = []
+    
+    for eq in equipment:
+        row = f"{eq['orden_trabajo']},{eq['cliente_nombre']},{eq['tipo_equipo']},{eq['modelo']},{eq['fabricante']},{eq['numero_serie']},{eq['estado']},{eq['created_at'].strftime('%Y-%m-%d')}\n"
+        csv_rows.append(row)
+    
+    csv_content = csv_header + "".join(csv_rows)
+    
+    return {
+        "filename": f"orden_compra_{order_number}.csv",
+        "content": csv_content,
+        "equipment_count": len(equipment)
+    }
 
 # Include the router in the main app
 app.include_router(api_router)

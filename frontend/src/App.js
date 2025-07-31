@@ -52,6 +52,29 @@ function App() {
   const [models, setModels] = useState([]);
   const [faultTypes, setFaultTypes] = useState([]);
   const [purchaseOrders, setPurchaseOrders] = useState([]);
+  const [activePurchaseOrders, setActivePurchaseOrders] = useState([]);
+
+  // Administrative management states
+  const [selectedEquipment, setSelectedEquipment] = useState([]);
+  const [purchaseOrderNumber, setPurchaseOrderNumber] = useState('');
+  const [selectedPurchaseOrder, setSelectedPurchaseOrder] = useState('');
+  const [purchaseOrderEquipment, setPurchaseOrderEquipment] = useState([]);
+
+  // Manufacturer response states
+  const [manufacturerSelectedPO, setManufacturerSelectedPO] = useState('');
+  const [manufacturerPOEquipment, setManufacturerPOEquipment] = useState([]);
+  const [selectedManufacturerEquipment, setSelectedManufacturerEquipment] = useState([]);
+  const [receptionNumber, setReceptionNumber] = useState('');
+  const [isUnderWarranty, setIsUnderWarranty] = useState(true);
+  const [quoteNumber, setQuoteNumber] = useState('');
+  const [quoteAccepted, setQuoteAccepted] = useState(false);
+
+  // Reception states
+  const [receptionEquipment, setReceptionEquipment] = useState([]);
+  const [selectedReceptionEquipment, setSelectedReceptionEquipment] = useState([]);
+
+  // Completed equipment states
+  const [completedEquipment, setCompletedEquipment] = useState([]);
 
   // Form states
   const [loginForm, setLoginForm] = useState({ username: '', password: '' });
@@ -130,6 +153,17 @@ function App() {
     }
   };
 
+  const loadActivePurchaseOrders = async () => {
+    try {
+      const response = await axios.get(`${API}/ordenes-compra/activas`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setActivePurchaseOrders(response.data.active_orders);
+    } catch (error) {
+      console.error('Error loading active purchase orders:', error);
+    }
+  };
+
   const login = async (e) => {
     e.preventDefault();
     try {
@@ -205,6 +239,161 @@ function App() {
     }
   };
 
+  const assignPurchaseOrder = async () => {
+    if (!purchaseOrderNumber || selectedEquipment.length === 0) {
+      alert('Por favor ingrese un número de pedido y seleccione equipos');
+      return;
+    }
+
+    try {
+      const response = await axios.post(`${API}/ordenes-compra/asignar`, {
+        numero_orden: purchaseOrderNumber,
+        equipment_ids: selectedEquipment
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      alert(`${response.data.assigned_count} equipos asignados a la orden de compra ${purchaseOrderNumber}`);
+      
+      // Refresh equipment list
+      const equipmentRes = await axios.get(`${API}/equipos`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setEquipment(equipmentRes.data);
+      
+      // Reset form
+      setSelectedEquipment([]);
+      setPurchaseOrderNumber('');
+    } catch (error) {
+      console.error('Error assigning purchase order:', error);
+      alert('Error al asignar orden de compra');
+    }
+  };
+
+  const loadPurchaseOrderEquipment = async (orderNumber) => {
+    try {
+      const response = await axios.get(`${API}/ordenes-compra/${orderNumber}/equipos`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setPurchaseOrderEquipment(response.data);
+    } catch (error) {
+      console.error('Error loading purchase order equipment:', error);
+    }
+  };
+
+  const loadManufacturerPOEquipment = async (orderNumber) => {
+    try {
+      const response = await axios.get(`${API}/ordenes-compra/${orderNumber}/equipos/enviados`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setManufacturerPOEquipment(response.data);
+    } catch (error) {
+      console.error('Error loading manufacturer PO equipment:', error);
+    }
+  };
+
+  const submitManufacturerResponse = async () => {
+    if (!manufacturerSelectedPO || selectedManufacturerEquipment.length === 0 || !receptionNumber) {
+      alert('Por favor complete todos los campos requeridos');
+      return;
+    }
+
+    try {
+      const response = await axios.post(`${API}/ordenes-compra/${manufacturerSelectedPO}/respuesta-fabricante`, {
+        equipment_ids: selectedManufacturerEquipment,
+        numero_recepcion_fabricante: receptionNumber,
+        en_garantia: isUnderWarranty,
+        numero_presupuesto: !isUnderWarranty ? quoteNumber : null,
+        presupuesto_aceptado: !isUnderWarranty ? quoteAccepted : null
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      alert(`Respuesta de fabricante registrada para ${response.data.updated_count} equipos`);
+      
+      // Refresh the equipment list for this PO
+      loadManufacturerPOEquipment(manufacturerSelectedPO);
+      
+      // Reset form
+      setSelectedManufacturerEquipment([]);
+      setReceptionNumber('');
+      setIsUnderWarranty(true);
+      setQuoteNumber('');
+      setQuoteAccepted(false);
+    } catch (error) {
+      console.error('Error submitting manufacturer response:', error);
+      alert('Error al registrar respuesta de fabricante');
+    }
+  };
+
+  const loadReceptionEquipment = async () => {
+    try {
+      const response = await axios.get(`${API}/equipos/para-recepcion`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setReceptionEquipment(response.data);
+    } catch (error) {
+      console.error('Error loading reception equipment:', error);
+    }
+  };
+
+  const receiveEquipment = async () => {
+    if (selectedReceptionEquipment.length === 0) {
+      alert('Por favor seleccione equipos para marcar como recibidos');
+      return;
+    }
+
+    try {
+      const response = await axios.post(`${API}/equipos/recibir`, {
+        equipment_ids: selectedReceptionEquipment
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      alert(`${response.data.received_count} equipos marcados como recibidos`);
+      
+      // Refresh reception equipment list
+      loadReceptionEquipment();
+      
+      // Reset selection
+      setSelectedReceptionEquipment([]);
+    } catch (error) {
+      console.error('Error receiving equipment:', error);
+      alert('Error al marcar equipos como recibidos');
+    }
+  };
+
+  const loadCompletedEquipment = async () => {
+    try {
+      const response = await axios.get(`${API}/equipos/completados`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setCompletedEquipment(response.data);
+    } catch (error) {
+      console.error('Error loading completed equipment:', error);
+    }
+  };
+
+  const exportToCSV = async (orderNumber) => {
+    try {
+      const response = await axios.get(`${API}/ordenes-compra/${orderNumber}/export-csv`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      // Create and download CSV file
+      const blob = new Blob([response.data.content], { type: 'text/csv' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = response.data.filename;
+      a.click();
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error exporting CSV:', error);
+      alert('Error al exportar CSV');
+    }
+  };
+
   const addManufacturer = async () => {
     if (!newManufacturer.trim()) return;
     try {
@@ -244,10 +433,56 @@ function App() {
     }
   };
 
+  const handleEquipmentSelection = (equipmentId, checked) => {
+    if (checked) {
+      setSelectedEquipment([...selectedEquipment, equipmentId]);
+    } else {
+      setSelectedEquipment(selectedEquipment.filter(id => id !== equipmentId));
+    }
+  };
+
+  const handleManufacturerEquipmentSelection = (equipmentId, checked) => {
+    if (checked) {
+      setSelectedManufacturerEquipment([...selectedManufacturerEquipment, equipmentId]);
+    } else {
+      setSelectedManufacturerEquipment(selectedManufacturerEquipment.filter(id => id !== equipmentId));
+    }
+  };
+
+  const handleReceptionEquipmentSelection = (equipmentId, checked) => {
+    if (checked) {
+      setSelectedReceptionEquipment([...selectedReceptionEquipment, equipmentId]);
+    } else {
+      setSelectedReceptionEquipment(selectedReceptionEquipment.filter(id => id !== equipmentId));
+    }
+  };
+
   const requiresSensorInfo = () => {
     const selectedFaultType = faultTypes.find(ft => ft.nombre === equipmentForm.tipo_fallo);
     return selectedFaultType?.requiere_sensor && equipmentForm.tipo_equipo === 'Detector Portátil de Gas';
   };
+
+  // Load data when switching modules
+  useEffect(() => {
+    if (token) {
+      switch (currentModule) {
+        case 'gestion':
+          loadActivePurchaseOrders();
+          break;
+        case 'respuesta':
+          loadActivePurchaseOrders();
+          break;
+        case 'recepcion':
+          loadReceptionEquipment();
+          break;
+        case 'completados':
+          loadCompletedEquipment();
+          break;
+        default:
+          break;
+      }
+    }
+  }, [currentModule, token]);
 
   if (!isLoggedIn) {
     return (
@@ -622,14 +857,27 @@ function App() {
             <div className="max-w-6xl mx-auto">
               <h2 className="text-3xl font-bold text-slate-800 mb-6">Gestión Administrativa de Envíos</h2>
               
-              <Card>
+              {/* Assign Purchase Order Section */}
+              <Card className="mb-6">
                 <CardHeader>
-                  <CardTitle>Equipos Pendientes de Envío</CardTitle>
+                  <CardTitle>Asignar Número de Pedido</CardTitle>
                 </CardHeader>
                 <CardContent>
+                  <div className="flex gap-4 mb-4">
+                    <Input
+                      placeholder="Número de Pedido"
+                      value={purchaseOrderNumber}
+                      onChange={(e) => setPurchaseOrderNumber(e.target.value)}
+                    />
+                    <Button onClick={assignPurchaseOrder} disabled={selectedEquipment.length === 0}>
+                      Asignar a {selectedEquipment.length} equipo(s)
+                    </Button>
+                  </div>
+                  
                   <Table>
                     <TableHeader>
                       <TableRow>
+                        <TableHead></TableHead>
                         <TableHead>Orden de Trabajo</TableHead>
                         <TableHead>Cliente</TableHead>
                         <TableHead>Tipo</TableHead>
@@ -641,6 +889,12 @@ function App() {
                     <TableBody>
                       {equipment.filter(eq => eq.estado === 'Pendiente').map((eq) => (
                         <TableRow key={eq.id}>
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedEquipment.includes(eq.id)}
+                              onCheckedChange={(checked) => handleEquipmentSelection(eq.id, checked)}
+                            />
+                          </TableCell>
                           <TableCell>{eq.orden_trabajo}</TableCell>
                           <TableCell>{eq.cliente_nombre}</TableCell>
                           <TableCell>{eq.tipo_equipo}</TableCell>
@@ -655,6 +909,69 @@ function App() {
                   </Table>
                 </CardContent>
               </Card>
+
+              {/* View by Purchase Order Section */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Ver Equipos por Número de Pedido</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex gap-4 mb-4">
+                    <Select onValueChange={(value) => {
+                      setSelectedPurchaseOrder(value);
+                      loadPurchaseOrderEquipment(value);
+                    }}>
+                      <SelectTrigger className="w-64">
+                        <SelectValue placeholder="Seleccionar número de pedido" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {activePurchaseOrders.map((orderNumber) => (
+                          <SelectItem key={orderNumber} value={orderNumber}>
+                            {orderNumber}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {selectedPurchaseOrder && (
+                      <Button onClick={() => exportToCSV(selectedPurchaseOrder)}>
+                        <Download className="h-4 w-4 mr-2" />
+                        Exportar CSV
+                      </Button>
+                    )}
+                  </div>
+
+                  {purchaseOrderEquipment.length > 0 && (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Orden de Trabajo</TableHead>
+                          <TableHead>Cliente</TableHead>
+                          <TableHead>Tipo</TableHead>
+                          <TableHead>Modelo</TableHead>
+                          <TableHead>Fabricante</TableHead>
+                          <TableHead>Número de Serie</TableHead>
+                          <TableHead>Estado</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {purchaseOrderEquipment.map((eq) => (
+                          <TableRow key={eq.id}>
+                            <TableCell>{eq.orden_trabajo}</TableCell>
+                            <TableCell>{eq.cliente_nombre}</TableCell>
+                            <TableCell>{eq.tipo_equipo}</TableCell>
+                            <TableCell>{eq.modelo}</TableCell>
+                            <TableCell>{eq.fabricante}</TableCell>
+                            <TableCell>{eq.numero_serie}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{eq.estado}</Badge>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </CardContent>
+              </Card>
             </div>
           )}
 
@@ -664,33 +981,119 @@ function App() {
               
               <Card>
                 <CardHeader>
-                  <CardTitle>Equipos Enviados al Fabricante</CardTitle>
+                  <CardTitle>Procesar Respuesta del Fabricante</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Orden de Trabajo</TableHead>
-                        <TableHead>Cliente</TableHead>
-                        <TableHead>Tipo</TableHead>
-                        <TableHead>Orden de Compra</TableHead>
-                        <TableHead>Estado</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {equipment.filter(eq => eq.estado === 'Enviado').map((eq) => (
-                        <TableRow key={eq.id}>
-                          <TableCell>{eq.orden_trabajo}</TableCell>
-                          <TableCell>{eq.cliente_nombre}</TableCell>
-                          <TableCell>{eq.tipo_equipo}</TableCell>
-                          <TableCell>{eq.numero_orden_compra}</TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{eq.estado}</Badge>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                  <div className="space-y-6">
+                    {/* Purchase Order Selection */}
+                    <div>
+                      <Label>Seleccionar Número de Pedido</Label>
+                      <Select onValueChange={(value) => {
+                        setManufacturerSelectedPO(value);
+                        loadManufacturerPOEquipment(value);
+                      }}>
+                        <SelectTrigger className="w-64">
+                          <SelectValue placeholder="Seleccionar número de pedido" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {activePurchaseOrders.map((orderNumber) => (
+                            <SelectItem key={orderNumber} value={orderNumber}>
+                              {orderNumber}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {manufacturerPOEquipment.length > 0 && (
+                      <>
+                        {/* Equipment Selection */}
+                        <div>
+                          <Label className="text-lg font-medium">Equipos Disponibles para Procesar</Label>
+                          <Table className="mt-4">
+                            <TableHeader>
+                              <TableRow>
+                                <TableHead></TableHead>
+                                <TableHead>Orden de Trabajo</TableHead>
+                                <TableHead>Cliente</TableHead>
+                                <TableHead>Tipo</TableHead>
+                                <TableHead>Número de Serie</TableHead>
+                              </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                              {manufacturerPOEquipment.map((eq) => (
+                                <TableRow key={eq.id}>
+                                  <TableCell>
+                                    <Checkbox
+                                      checked={selectedManufacturerEquipment.includes(eq.id)}
+                                      onCheckedChange={(checked) => handleManufacturerEquipmentSelection(eq.id, checked)}
+                                    />
+                                  </TableCell>
+                                  <TableCell>{eq.orden_trabajo}</TableCell>
+                                  <TableCell>{eq.cliente_nombre}</TableCell>
+                                  <TableCell>{eq.tipo_equipo}</TableCell>
+                                  <TableCell>{eq.numero_serie}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </div>
+
+                        {/* Manufacturer Response Form */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 border rounded-lg bg-slate-50">
+                          <div>
+                            <Label>Número de Recepción en Fabricante</Label>
+                            <Input
+                              value={receptionNumber}
+                              onChange={(e) => setReceptionNumber(e.target.value)}
+                              placeholder="Ej: REC-2024-001"
+                            />
+                          </div>
+
+                          <div className="flex items-center space-x-2">
+                            <Checkbox
+                              id="warranty"
+                              checked={isUnderWarranty}
+                              onCheckedChange={setIsUnderWarranty}
+                            />
+                            <Label htmlFor="warranty">En Garantía</Label>
+                          </div>
+
+                          {!isUnderWarranty && (
+                            <>
+                              <div>
+                                <Label>Número de Presupuesto</Label>
+                                <Input
+                                  value={quoteNumber}
+                                  onChange={(e) => setQuoteNumber(e.target.value)}
+                                  placeholder="Ej: PRES-2024-001"
+                                />
+                              </div>
+
+                              <div className="flex items-center space-x-2">
+                                <Checkbox
+                                  id="quoteAccepted"
+                                  checked={quoteAccepted}
+                                  onCheckedChange={setQuoteAccepted}
+                                />
+                                <Label htmlFor="quoteAccepted">Presupuesto Aceptado</Label>
+                              </div>
+                            </>
+                          )}
+
+                          <div className="md:col-span-2">
+                            <Button 
+                              onClick={submitManufacturerResponse}
+                              disabled={selectedManufacturerEquipment.length === 0 || !receptionNumber}
+                              className="w-full"
+                            >
+                              Registrar Respuesta para {selectedManufacturerEquipment.length} equipo(s)
+                            </Button>
+                          </div>
+                        </div>
+                      </>
+                    )}
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -702,31 +1105,65 @@ function App() {
               
               <Card>
                 <CardHeader>
-                  <CardTitle>Equipos Pendientes de Recepción</CardTitle>
+                  <CardTitle>Equipos Listos para Recepción</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Orden de Trabajo</TableHead>
-                        <TableHead>Cliente</TableHead>
-                        <TableHead>Tipo</TableHead>
-                        <TableHead>Estado</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {equipment.filter(eq => eq.estado === 'En Fabricante').map((eq) => (
-                        <TableRow key={eq.id}>
-                          <TableCell>{eq.orden_trabajo}</TableCell>
-                          <TableCell>{eq.cliente_nombre}</TableCell>
-                          <TableCell>{eq.tipo_equipo}</TableCell>
-                          <TableCell>
-                            <Badge variant="default">{eq.estado}</Badge>
-                          </TableCell>
+                  <div className="space-y-4">
+                    <Button 
+                      onClick={receiveEquipment}
+                      disabled={selectedReceptionEquipment.length === 0}
+                      className="mb-4"
+                    >
+                      Marcar como Recibidos ({selectedReceptionEquipment.length} equipo(s))
+                    </Button>
+
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead></TableHead>
+                          <TableHead>Orden de Trabajo</TableHead>
+                          <TableHead>Cliente</TableHead>
+                          <TableHead>Tipo</TableHead>
+                          <TableHead>Número de Serie</TableHead>
+                          <TableHead>Recepción Fabricante</TableHead>
+                          <TableHead>Garantía</TableHead>
+                          <TableHead>Presupuesto</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {receptionEquipment.map((eq) => (
+                          <TableRow key={eq.id}>
+                            <TableCell>
+                              <Checkbox
+                                checked={selectedReceptionEquipment.includes(eq.id)}
+                                onCheckedChange={(checked) => handleReceptionEquipmentSelection(eq.id, checked)}
+                              />
+                            </TableCell>
+                            <TableCell>{eq.orden_trabajo}</TableCell>
+                            <TableCell>{eq.cliente_nombre}</TableCell>
+                            <TableCell>{eq.tipo_equipo}</TableCell>
+                            <TableCell>{eq.numero_serie}</TableCell>
+                            <TableCell>{eq.numero_recepcion_fabricante}</TableCell>
+                            <TableCell>
+                              <Badge variant={eq.en_garantia ? "success" : "secondary"}>
+                                {eq.en_garantia ? "Sí" : "No"}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              {eq.numero_presupuesto && (
+                                <div>
+                                  <div>{eq.numero_presupuesto}</div>
+                                  <Badge variant={eq.presupuesto_aceptado ? "success" : "destructive"}>
+                                    {eq.presupuesto_aceptado ? "Aceptado" : "Rechazado"}
+                                  </Badge>
+                                </div>
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -738,7 +1175,7 @@ function App() {
               
               <Card>
                 <CardHeader>
-                  <CardTitle>Equipos Recibidos en ASCONSA</CardTitle>
+                  <CardTitle>Equipos Recibidos en ASCONSA - Proceso Completado</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -749,20 +1186,39 @@ function App() {
                         <TableHead>Tipo</TableHead>
                         <TableHead>Modelo</TableHead>
                         <TableHead>Fabricante</TableHead>
-                        <TableHead>Estado</TableHead>
-                        <TableHead>Fecha</TableHead>
+                        <TableHead>Número de Serie</TableHead>
+                        <TableHead>Orden Compra</TableHead>
+                        <TableHead>Recepción Fabricante</TableHead>
+                        <TableHead>Garantía</TableHead>
+                        <TableHead>Presupuesto</TableHead>
+                        <TableHead>Fecha Recepción</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
-                      {equipment.filter(eq => eq.estado === 'Recibido').map((eq) => (
+                      {completedEquipment.map((eq) => (
                         <TableRow key={eq.id}>
                           <TableCell>{eq.orden_trabajo}</TableCell>
                           <TableCell>{eq.cliente_nombre}</TableCell>
                           <TableCell>{eq.tipo_equipo}</TableCell>
                           <TableCell>{eq.modelo}</TableCell>
                           <TableCell>{eq.fabricante}</TableCell>
+                          <TableCell>{eq.numero_serie}</TableCell>
+                          <TableCell>{eq.numero_orden_compra}</TableCell>
+                          <TableCell>{eq.numero_recepcion_fabricante}</TableCell>
                           <TableCell>
-                            <Badge variant="success">{eq.estado}</Badge>
+                            <Badge variant={eq.en_garantia ? "success" : "secondary"}>
+                              {eq.en_garantia ? "Sí" : "No"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            {eq.numero_presupuesto && (
+                              <div>
+                                <div className="text-sm">{eq.numero_presupuesto}</div>
+                                <Badge variant={eq.presupuesto_aceptado ? "success" : "destructive"}>
+                                  {eq.presupuesto_aceptado ? "Aceptado" : "Rechazado"}
+                                </Badge>
+                              </div>
+                            )}
                           </TableCell>
                           <TableCell>{new Date(eq.updated_at).toLocaleDateString()}</TableCell>
                         </TableRow>
