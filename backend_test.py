@@ -275,6 +275,49 @@ class EquipmentManagementAPITester:
                 )
         
         return success
+    def test_workflow_endpoints(self):
+        """Test workflow-specific endpoints"""
+        print("\n" + "="*50)
+        print("TESTING WORKFLOW ENDPOINTS")
+        print("="*50)
+        
+        # Test get pending equipment
+        success, pending_equipment = self.run_test(
+            "Get Pending Equipment",
+            "GET",
+            "equipos/pendientes",
+            200
+        )
+        
+        # Test get equipment for reception
+        success, reception_equipment = self.run_test(
+            "Get Equipment for Reception",
+            "GET",
+            "equipos/para-recepcion",
+            200
+        )
+        
+        # Test get completed equipment
+        success, completed_equipment = self.run_test(
+            "Get Completed Equipment",
+            "GET",
+            "equipos/completados",
+            200
+        )
+        
+        # Test receive equipment (if we have equipment)
+        if self.created_resources['equipment']:
+            success, response = self.run_test(
+                "Receive Equipment",
+                "POST",
+                "equipos/recibir",
+                200,
+                data={
+                    "equipment_ids": self.created_resources['equipment'][:1]
+                }
+            )
+        
+        return success
 
     def test_purchase_orders(self):
         """Test purchase order endpoints"""
