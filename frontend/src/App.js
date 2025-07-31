@@ -1119,11 +1119,13 @@ function App() {
                           </SelectTrigger>
                           <SelectContent>
                             <SelectItem value="">Sin centro específico</SelectItem>
-                            {selectedClientWorkCenters.map((workCenter) => (
-                              <SelectItem key={workCenter.id} value={workCenter.id}>
-                                {workCenter.nombre}
-                              </SelectItem>
-                            ))}
+                            {selectedClientWorkCenters
+                              .filter(workCenter => workCenter.id && workCenter.id.trim() !== '') // Filter out empty IDs
+                              .map((workCenter) => (
+                                <SelectItem key={workCenter.id} value={workCenter.id}>
+                                  {workCenter.nombre}
+                                </SelectItem>
+                              ))}
                           </SelectContent>
                         </Select>
                       </div>
